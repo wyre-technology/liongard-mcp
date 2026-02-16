@@ -13,6 +13,10 @@ WORKDIR /app
 COPY package*.json ./
 COPY .npmrc ./
 
+# GitHub Packages auth for @wyre-technology scoped packages
+ARG GITHUB_TOKEN
+RUN echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+
 # Install dependencies (--ignore-scripts prevents 'prepare' from running before source is copied)
 RUN npm ci --ignore-scripts
 
