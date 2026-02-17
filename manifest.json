@@ -1,0 +1,28 @@
+{
+  "manifest_version": "0.3",
+  "name": "liongard-mcp",
+  "display_name": "Liongard MCP Server",
+  "version": "0.0.0",
+  "description": "MCP server for Liongard - access inspectors, environments, metrics, and detections through AI assistants",
+  "long_description": "Provides AI assistants with structured access to your Liongard data. Browse inspectors, environments, metrics, detections, and timeline data through the Model Context Protocol.",
+  "author": { "name": "Wyre Technology", "url": "https://github.com/wyre-technology" },
+  "repository": { "type": "git", "url": "https://github.com/wyre-technology/liongard-mcp" },
+  "homepage": "https://github.com/wyre-technology/liongard-mcp",
+  "license": "Apache-2.0",
+  "keywords": ["liongard", "visibility", "msp", "inspectors", "it-management"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": { "LIONGARD_API_KEY": "${user_config.liongard_api_key}", "LIONGARD_INSTANCE": "${user_config.liongard_instance}", "MCP_TRANSPORT": "stdio" }
+    }
+  },
+  "tools_generated": true,
+  "user_config": {
+    "liongard_api_key": { "type": "string", "title": "Liongard API Key", "description": "Your Liongard API key", "sensitive": true, "required": true },
+    "liongard_instance": { "type": "string", "title": "Liongard Instance", "description": "Your Liongard instance name", "sensitive": false, "required": true }
+  },
+  "compatibility": { "platforms": ["darwin", "win32", "linux"], "runtimes": { "node": ">=18.0.0" }, "claude_desktop": ">=0.10.0" }
+}
