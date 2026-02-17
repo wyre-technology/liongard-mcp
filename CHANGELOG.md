@@ -1,3 +1,13 @@
+# [1.1.0](https://github.com/wyre-technology/liongard-mcp/compare/v1.0.1...v1.1.0) (2026-02-17)
+
+
+### Features
+
+* add MCPB bundle to release workflow ([e1d8d4c](https://github.com/wyre-technology/liongard-mcp/commit/e1d8d4cc3daefd876963272e2f7c4020f55db2ec))
+* add MCPB manifest for desktop installation ([f686998](https://github.com/wyre-technology/liongard-mcp/commit/f68699831215cde89344a96f4640235efcd49498))
+* add MCPB pack script ([562f1d8](https://github.com/wyre-technology/liongard-mcp/commit/562f1d8fdba3f8149cb985bd9e8894006a47cfee))
+* add pack:mcpb script ([8f58c22](https://github.com/wyre-technology/liongard-mcp/commit/8f58c229b3ec790300edf6f1825e168324ff0a77))
+
 ## [1.0.1](https://github.com/wyre-technology/liongard-mcp/compare/v1.0.0...v1.0.1) (2026-02-17)
 
 
