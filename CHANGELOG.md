@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/wyre-technology/liongard-mcp/compare/v1.0.0...v1.0.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* **docker:** drop arm64 platform to fix QEMU build failures ([48d0d91](https://github.com/wyre-technology/liongard-mcp/commit/48d0d91abaaba5c3975d4a065668e17919115a77))
+
 # 1.0.0 (2026-02-16)
 
 
