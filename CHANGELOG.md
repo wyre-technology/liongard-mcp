@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.0...v1.1.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* **ci:** fix release workflow failures ([08506f1](https://github.com/wyre-technology/liongard-mcp/commit/08506f1ee96e27f8f9ff487a947770d3498f1dbe))
+
 # [1.1.0](https://github.com/wyre-technology/liongard-mcp/compare/v1.0.1...v1.1.0) (2026-02-17)
 
 
