@@ -1,3 +1,11 @@
+## [1.1.2](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.1...v1.1.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* quote MCPB bundle filename to prevent shell glob expansion failure ([dcb81ba](https://github.com/wyre-technology/liongard-mcp/commit/dcb81ba1d2aa2001699d82a1dbe7c83f30f03f54))
+* rename duplicate step id 'version' to 'release-version' in docker job ([4c60af3](https://github.com/wyre-technology/liongard-mcp/commit/4c60af31795a1177f8e9d6ac34d977087f2173d4))
+
 ## [1.1.1](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.0...v1.1.1) (2026-02-18)
 
 
