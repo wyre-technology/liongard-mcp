@@ -1,3 +1,11 @@
+## [1.1.3](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.2...v1.1.3) (2026-02-26)
+
+
+### Bug Fixes
+
+* correct Docker tag step reference from release-version to version ([340870e](https://github.com/wyre-technology/liongard-mcp/commit/340870e6865b5055ec3da02343043d293017c33e))
+* rename pack-mcpb.js to .cjs to fix ESM require() error ([eed5713](https://github.com/wyre-technology/liongard-mcp/commit/eed571344ac9e3f096e721a8a50a4739c34e548a))
+
 ## [1.1.2](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.1...v1.1.2) (2026-02-23)
 
 
