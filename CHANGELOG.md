@@ -1,3 +1,11 @@
+## [1.1.4](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.3...v1.1.4) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** fix broken YAML in Discord notification step ([cb9ad1e](https://github.com/wyre-technology/liongard-mcp/commit/cb9ad1e68d438f4e478b011bd413d5f407defb9d))
+* **ci:** move Discord notification into release workflow ([aa51620](https://github.com/wyre-technology/liongard-mcp/commit/aa51620a6ddf2a1e09390498a11c6e3b0800c1f4))
+
 ## [1.1.3](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.2...v1.1.3) (2026-02-26)
 
 
