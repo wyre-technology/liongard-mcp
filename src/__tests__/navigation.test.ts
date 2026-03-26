@@ -214,45 +214,61 @@ describe("navigation and state management", () => {
       expect(navigateTool.inputSchema.required).toContain("domain");
     });
 
-    it("should define back tool with empty schema", () => {
-      const backTool = {
-        name: "liongard_back",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      };
-
-      expect(backTool.name).toBe("liongard_back");
-      expect(Object.keys(backTool.inputSchema.properties)).toHaveLength(0);
-    });
   });
 
-  describe("state transitions", () => {
-    it("should start at null (root) state", () => {
-      const state = { currentDomain: null as string | null };
-      expect(state.currentDomain).toBeNull();
+  describe("all tools listed upfront", () => {
+    it("should expose all 25 domain tools plus navigate (26 total)", async () => {
+      const { environmentTools } = await import("../domains/environments.js");
+      const { agentTools } = await import("../domains/agents.js");
+      const { inspectionTools } = await import("../domains/inspections.js");
+      const { systemTools } = await import("../domains/systems.js");
+      const { detectionTools } = await import("../domains/detections.js");
+      const { alertTools } = await import("../domains/alerts.js");
+      const { metricTools } = await import("../domains/metrics.js");
+      const { timelineTools } = await import("../domains/timeline.js");
+      const { inventoryTools } = await import("../domains/inventory.js");
+
+      const allDomainTools = [
+        ...environmentTools,
+        ...agentTools,
+        ...inspectionTools,
+        ...systemTools,
+        ...detectionTools,
+        ...alertTools,
+        ...metricTools,
+        ...timelineTools,
+        ...inventoryTools,
+      ];
+
+      // 25 domain tools + 1 navigate tool = 26 total
+      expect(allDomainTools).toHaveLength(25);
     });
 
-    it("should transition to domain on navigate", () => {
-      const state = { currentDomain: null as string | null };
-      state.currentDomain = "environments";
-      expect(state.currentDomain).toBe("environments");
-    });
+    it("should have no duplicate tool names across domains", async () => {
+      const { environmentTools } = await import("../domains/environments.js");
+      const { agentTools } = await import("../domains/agents.js");
+      const { inspectionTools } = await import("../domains/inspections.js");
+      const { systemTools } = await import("../domains/systems.js");
+      const { detectionTools } = await import("../domains/detections.js");
+      const { alertTools } = await import("../domains/alerts.js");
+      const { metricTools } = await import("../domains/metrics.js");
+      const { timelineTools } = await import("../domains/timeline.js");
+      const { inventoryTools } = await import("../domains/inventory.js");
 
-    it("should transition back to null on back", () => {
-      const state = { currentDomain: "environments" as string | null };
-      state.currentDomain = null;
-      expect(state.currentDomain).toBeNull();
-    });
+      const allNames = [
+        ...environmentTools,
+        ...agentTools,
+        ...inspectionTools,
+        ...systemTools,
+        ...detectionTools,
+        ...alertTools,
+        ...metricTools,
+        ...timelineTools,
+        ...inventoryTools,
+      ].map((t) => t.name);
 
-    it("should allow switching between domains", () => {
-      const state = { currentDomain: "environments" as string | null };
-
-      state.currentDomain = null;
-      state.currentDomain = "inspections";
-
-      expect(state.currentDomain).toBe("inspections");
+      const uniqueNames = new Set(allNames);
+      expect(uniqueNames.size).toBe(allNames.length);
     });
   });
 

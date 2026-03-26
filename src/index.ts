@@ -3,8 +3,10 @@
  * Liongard MCP Server
  *
  * This MCP server provides tools for interacting with the Liongard API.
- * It implements a decision tree architecture where tools are dynamically
- * loaded based on the selected domain.
+ * All tools are listed upfront so they work with every MCP client, including
+ * remote connectors (claude.ai, mcp-remote) that do not support dynamic
+ * tool-list changes. A helper `liongard_navigate` tool provides domain
+ * discovery and guidance.
  *
  * Supports both stdio and HTTP (StreamableHTTP) transports.
  * Authentication: Set LIONGARD_API_KEY and LIONGARD_INSTANCE environment variables (env mode)
@@ -85,49 +87,37 @@ const domainDescriptions: Record<Domain, string> = {
 };
 
 /**
- * Server state management
+ * Map from domain name to its tool definitions
  */
-interface ServerState {
-  currentDomain: Domain | null;
-}
-
-const state: ServerState = {
-  currentDomain: null,
+const domainToolMap: Record<Domain, Tool[]> = {
+  environments: environmentTools,
+  agents: agentTools,
+  inspections: inspectionTools,
+  systems: systemTools,
+  detections: detectionTools,
+  alerts: alertTools,
+  metrics: metricTools,
+  timeline: timelineTools,
+  inventory: inventoryTools,
 };
 
 /**
- * Get tools for a specific domain
+ * All domain tools, collected once at startup
  */
-function getDomainTools(domain: Domain): Tool[] {
-  switch (domain) {
-    case "environments":
-      return environmentTools;
-    case "agents":
-      return agentTools;
-    case "inspections":
-      return inspectionTools;
-    case "systems":
-      return systemTools;
-    case "detections":
-      return detectionTools;
-    case "alerts":
-      return alertTools;
-    case "metrics":
-      return metricTools;
-    case "timeline":
-      return timelineTools;
-    case "inventory":
-      return inventoryTools;
-  }
-}
+const allDomainTools: Tool[] = Object.values(domainToolMap).flat();
 
 /**
- * Navigation tool - entry point for decision tree
+ * Navigation / discovery tool - helps the LLM find the right tools
+ *
+ * This is a stateless helper that describes available tools for a domain.
+ * All domain tools are always listed in tools/list regardless of navigation
+ * state, because many MCP clients (claude.ai connectors, mcp-remote) only
+ * fetch the tool list once and do not support notifications/tools/list_changed.
  */
 const navigateTool: Tool = {
   name: "liongard_navigate",
   description:
-    "Navigate to a specific domain in Liongard. Call this first to select which area you want to work with. After navigation, domain-specific tools will be available.",
+    "Discover available Liongard tools by domain. Returns tool names and descriptions for the selected domain. All tools are callable at any time — this is a help/discovery aid, not a prerequisite.",
   inputSchema: {
     type: "object",
     properties: {
@@ -144,7 +134,7 @@ const navigateTool: Tool = {
           "timeline",
           "inventory",
         ],
-        description: `The domain to navigate to:
+        description: `The domain to explore:
 - environments: ${domainDescriptions.environments}
 - agents: ${domainDescriptions.agents}
 - inspections: ${domainDescriptions.inspections}
@@ -161,19 +151,6 @@ const navigateTool: Tool = {
 };
 
 /**
- * Back navigation tool - return to domain selection
- */
-const backTool: Tool = {
-  name: "liongard_back",
-  description:
-    "Return to domain selection. Use this to switch to a different area of Liongard.",
-  inputSchema: {
-    type: "object",
-    properties: {},
-  },
-};
-
-/**
  * Create the MCP server
  */
 const server = new Server(
@@ -183,27 +160,19 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: { listChanged: true },
+      tools: {},
     },
   }
 );
 
 /**
- * Handle ListTools requests - returns tools based on current state
+ * Handle ListTools requests - always returns ALL tools
+ *
+ * Many MCP clients (claude.ai connectors, mcp-remote) fetch tools/list once
+ * and never re-fetch, so every tool must be present from the start.
  */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const tools: Tool[] = [];
-
-  if (state.currentDomain === null) {
-    // At root - show navigation tool only
-    tools.push(navigateTool);
-  } else {
-    // In a domain - show domain tools plus back navigation
-    tools.push(backTool);
-    tools.push(...getDomainTools(state.currentDomain));
-  }
-
-  return { tools };
+  return { tools: [navigateTool, ...allDomainTools] };
 });
 
 /**
@@ -213,39 +182,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    // Handle navigation
+    // Handle navigation / discovery helper
     if (name === "liongard_navigate") {
       const { domain } = args as { domain: Domain };
-      state.currentDomain = domain;
+      const tools = domainToolMap[domain];
 
-      const domainTools = getDomainTools(domain);
-      const toolNames = domainTools.map((t) => t.name).join(", ");
+      if (!tools) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Unknown domain: ${domain}. Valid domains: ${Object.keys(domainToolMap).join(", ")}`,
+            },
+          ],
+          isError: true,
+        };
+      }
 
-      // Notify the client that the tool list has changed so it re-fetches
-      await server.sendToolListChanged();
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Navigated to ${domain} domain. Available tools: ${toolNames}`,
-          },
-        ],
-      };
-    }
-
-    // Handle back navigation
-    if (name === "liongard_back") {
-      state.currentDomain = null;
-
-      // Notify the client that the tool list has changed so it re-fetches
-      await server.sendToolListChanged();
+      const toolSummary = tools
+        .map((t) => `- ${t.name}: ${t.description}`)
+        .join("\n");
 
       return {
         content: [
           {
             type: "text",
-            text: "Returned to domain selection. Use liongard_navigate to select a domain: environments, agents, inspections, systems, detections, alerts, metrics, timeline, inventory",
+            text: `${domainDescriptions[domain]}\n\nAvailable tools:\n${toolSummary}\n\nYou can call any of these tools directly.`,
           },
         ],
       };
@@ -287,7 +249,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       content: [
         {
           type: "text",
-          text: `Unknown tool: ${name}. Use liongard_navigate to select a domain first.`,
+          text: `Unknown tool: ${name}. Use liongard_navigate to discover available tools by domain.`,
         },
       ],
       isError: true,
