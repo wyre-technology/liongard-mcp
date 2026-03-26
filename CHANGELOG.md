@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.4...v1.1.5) (2026-03-26)
+
+
+### Bug Fixes
+
+* emit tools/list_changed notification after navigate ([2dfaf38](https://github.com/wyre-technology/liongard-mcp/commit/2dfaf38133660e5ce13e75e0432b00513f20daec)), closes [#1](https://github.com/wyre-technology/liongard-mcp/issues/1)
+
 ## [1.1.4](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.3...v1.1.4) (2026-03-02)
 
 
