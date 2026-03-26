@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.5...v1.1.6) (2026-03-26)
+
+
+### Bug Fixes
+
+* **tools:** list all domain tools upfront, remove lazy loading for remote MCP compatibility ([1b8b8c1](https://github.com/wyre-technology/liongard-mcp/commit/1b8b8c10b6a81fbc449c439dea4ea09327f3bc63))
+
 ## [1.1.5](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.4...v1.1.5) (2026-03-26)
 
 
