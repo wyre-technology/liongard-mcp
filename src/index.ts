@@ -183,7 +183,7 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {},
+      tools: { listChanged: true },
     },
   }
 );
@@ -221,6 +221,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const domainTools = getDomainTools(domain);
       const toolNames = domainTools.map((t) => t.name).join(", ");
 
+      // Notify the client that the tool list has changed so it re-fetches
+      await server.sendToolListChanged();
+
       return {
         content: [
           {
@@ -234,6 +237,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Handle back navigation
     if (name === "liongard_back") {
       state.currentDomain = null;
+
+      // Notify the client that the tool list has changed so it re-fetches
+      await server.sendToolListChanged();
+
       return {
         content: [
           {
