@@ -14,7 +14,6 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
-import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -151,122 +150,125 @@ const navigateTool: Tool = {
 };
 
 /**
- * Create the MCP server
+ * Create a new MCP Server instance with all tool handlers registered.
+ * Called once for stdio, or per-request for HTTP transport.
  */
-const server = new Server(
-  {
-    name: "liongard-mcp",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {
-      tools: {},
+function createMcpServer(): Server {
+  const server = new Server(
+    {
+      name: "liongard-mcp",
+      version: "1.0.0",
     },
-  }
-);
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
 
-/**
- * Handle ListTools requests - always returns ALL tools
- *
- * Many MCP clients (claude.ai connectors, mcp-remote) fetch tools/list once
- * and never re-fetch, so every tool must be present from the start.
- */
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools: [navigateTool, ...allDomainTools] };
-});
+  /**
+   * Handle ListTools requests - always returns ALL tools
+   */
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return { tools: [navigateTool, ...allDomainTools] };
+  });
 
-/**
- * Handle CallTool requests
- */
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  /**
+   * Handle CallTool requests
+   */
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
 
-  try {
-    // Handle navigation / discovery helper
-    if (name === "liongard_navigate") {
-      const { domain } = args as { domain: Domain };
-      const tools = domainToolMap[domain];
+    try {
+      // Handle navigation / discovery helper
+      if (name === "liongard_navigate") {
+        const { domain } = args as { domain: Domain };
+        const tools = domainToolMap[domain];
 
-      if (!tools) {
+        if (!tools) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Unknown domain: ${domain}. Valid domains: ${Object.keys(domainToolMap).join(", ")}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const toolSummary = tools
+          .map((t) => `- ${t.name}: ${t.description}`)
+          .join("\n");
+
         return {
           content: [
             {
               type: "text",
-              text: `Unknown domain: ${domain}. Valid domains: ${Object.keys(domainToolMap).join(", ")}`,
+              text: `${domainDescriptions[domain]}\n\nAvailable tools:\n${toolSummary}\n\nYou can call any of these tools directly.`,
             },
           ],
-          isError: true,
         };
       }
 
-      const toolSummary = tools
-        .map((t) => `- ${t.name}: ${t.description}`)
-        .join("\n");
+      // Route to appropriate domain handler
+      const toolArgs = (args ?? {}) as Record<string, unknown>;
 
+      if (name.startsWith("liongard_environments_")) {
+        return await handleEnvironmentTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_agents_")) {
+        return await handleAgentTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_inspections_")) {
+        return await handleInspectionTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_systems_")) {
+        return await handleSystemTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_detections_")) {
+        return await handleDetectionTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_alerts_")) {
+        return await handleAlertTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_metrics_")) {
+        return await handleMetricTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_timeline_")) {
+        return await handleTimelineTool(name, toolArgs);
+      }
+      if (name.startsWith("liongard_inventory_")) {
+        return await handleInventoryTool(name, toolArgs);
+      }
+
+      // Unknown tool
       return {
         content: [
           {
             type: "text",
-            text: `${domainDescriptions[domain]}\n\nAvailable tools:\n${toolSummary}\n\nYou can call any of these tools directly.`,
+            text: `Unknown tool: ${name}. Use liongard_navigate to discover available tools by domain.`,
           },
         ],
+        isError: true,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{ type: "text", text: `Error: ${message}` }],
+        isError: true,
       };
     }
+  });
 
-    // Route to appropriate domain handler
-    const toolArgs = (args ?? {}) as Record<string, unknown>;
-
-    if (name.startsWith("liongard_environments_")) {
-      return await handleEnvironmentTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_agents_")) {
-      return await handleAgentTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_inspections_")) {
-      return await handleInspectionTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_systems_")) {
-      return await handleSystemTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_detections_")) {
-      return await handleDetectionTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_alerts_")) {
-      return await handleAlertTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_metrics_")) {
-      return await handleMetricTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_timeline_")) {
-      return await handleTimelineTool(name, toolArgs);
-    }
-    if (name.startsWith("liongard_inventory_")) {
-      return await handleInventoryTool(name, toolArgs);
-    }
-
-    // Unknown tool
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Unknown tool: ${name}. Use liongard_navigate to discover available tools by domain.`,
-        },
-      ],
-      isError: true,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: "text", text: `Error: ${message}` }],
-      isError: true,
-    };
-  }
-});
+  return server;
+}
 
 /**
  * Start the server with stdio transport (default)
  */
 async function startStdioTransport(): Promise<void> {
+  const server = createMcpServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("Liongard MCP server running on stdio");
@@ -281,11 +283,6 @@ async function startHttpTransport(): Promise<void> {
   const host = process.env.MCP_HTTP_HOST || "0.0.0.0";
   const authMode = (process.env.AUTH_MODE as AuthMode) || "env";
   const isGatewayMode = authMode === "gateway";
-
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-    enableJsonResponse: true,
-  });
 
   const httpServer = createServer(
     (req: IncomingMessage, res: ServerResponse) => {
@@ -308,7 +305,9 @@ async function startHttpTransport(): Promise<void> {
         return;
       }
 
-      // MCP endpoint
+      // MCP endpoint — create a new Server + Transport per request so that
+      // each initialize handshake gets a fresh server (the MCP SDK rejects
+      // initialize on an already-initialized server).
       if (url.pathname === "/mcp") {
         // In gateway mode, set credentials if provided but don't reject
         // requests without them. tools/list and initialize don't need
@@ -329,7 +328,21 @@ async function startHttpTransport(): Promise<void> {
           }
         }
 
-        transport.handleRequest(req, res);
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+          enableJsonResponse: true,
+        });
+
+        const server = createMcpServer();
+
+        res.on("close", () => {
+          transport.close();
+          server.close();
+        });
+
+        server.connect(transport).then(() => {
+          transport.handleRequest(req, res);
+        });
         return;
       }
 
@@ -343,8 +356,6 @@ async function startHttpTransport(): Promise<void> {
       );
     }
   );
-
-  await server.connect(transport);
 
   await new Promise<void>((resolve) => {
     httpServer.listen(port, host, () => {
@@ -367,7 +378,6 @@ async function startHttpTransport(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       httpServer.close((err) => (err ? reject(err) : resolve()));
     });
-    await server.close();
     process.exit(0);
   };
 
