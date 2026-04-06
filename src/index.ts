@@ -305,6 +305,26 @@ async function startHttpTransport(): Promise<void> {
         return;
       }
 
+      // Diagnostic endpoint - test outbound connectivity
+      if (url.pathname === "/diag") {
+        try {
+          const testUrl = "https://us3.app.liongard.com/api/v1/environments/?page=1&pageSize=1";
+          const apiKey = process.env.LIONGARD_API_KEY || "none";
+          const instance = process.env.LIONGARD_INSTANCE || "none";
+          const diagRes = await fetch(testUrl, {
+            headers: { "X-ROAR-API-KEY": apiKey, Accept: "application/json" },
+            signal: AbortSignal.timeout(10000),
+          });
+          const body = await diagRes.text();
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: diagRes.status, instance, apiKeyLen: apiKey.length, bodyPreview: body.slice(0, 200) }));
+        } catch (err: unknown) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: String(err), cause: (err as any)?.cause?.message || "none" }));
+        }
+        return;
+      }
+
       // MCP endpoint — create a new Server + Transport per request so that
       // each initialize handshake gets a fresh server (the MCP SDK rejects
       // initialize on an already-initialized server).
