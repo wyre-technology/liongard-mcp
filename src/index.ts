@@ -309,6 +309,8 @@ async function startHttpTransport(): Promise<void> {
       // each initialize handshake gets a fresh server (the MCP SDK rejects
       // initialize on an already-initialized server).
       if (url.pathname === "/mcp") {
+        console.error(`[MCP] ${req.method} /mcp from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} hasApiKey=${!!req.headers['x-liongard-api-key']} hasInstance=${!!req.headers['x-liongard-instance']}`);
+
         // In gateway mode, set credentials if provided but don't reject
         // requests without them. tools/list and initialize don't need
         // credentials; tools/call will fail with a clear error if
@@ -342,6 +344,12 @@ async function startHttpTransport(): Promise<void> {
 
         server.connect(transport).then(() => {
           transport.handleRequest(req, res);
+        }).catch((err) => {
+          console.error('[MCP] transport error:', err);
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: null }));
+          }
         });
         return;
       }
