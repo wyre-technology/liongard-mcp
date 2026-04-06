@@ -1,3 +1,10 @@
+## [1.1.10](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.9...v1.1.10) (2026-04-06)
+
+
+### Bug Fixes
+
+* per-request MCP Server+Transport to support gateway tool-cache ([dde56a7](https://github.com/wyre-technology/liongard-mcp/commit/dde56a7bb7bfa7d4563c1f9c039bd1e9d797d543))
+
 ## [1.1.9](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.8...v1.1.9) (2026-04-06)
 
 
