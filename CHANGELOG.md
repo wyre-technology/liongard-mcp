@@ -1,3 +1,10 @@
+## [1.1.9](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.8...v1.1.9) (2026-04-06)
+
+
+### Bug Fixes
+
+* use stateless MCP transport (no session IDs) ([46174a9](https://github.com/wyre-technology/liongard-mcp/commit/46174a9b6e8e6dfd0a9f71418023676027c99e8a))
+
 ## [1.1.8](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.7...v1.1.8) (2026-04-06)
 
 
