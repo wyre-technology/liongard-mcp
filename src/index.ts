@@ -310,7 +310,10 @@ async function startHttpTransport(): Promise<void> {
 
       // MCP endpoint
       if (url.pathname === "/mcp") {
-        // In gateway mode, extract credentials from headers
+        // In gateway mode, set credentials if provided but don't reject
+        // requests without them. tools/list and initialize don't need
+        // credentials; tools/call will fail with a clear error if
+        // credentials are missing when the API client is created.
         if (isGatewayMode) {
           const apiKey = req.headers["x-liongard-api-key"] as
             | string
@@ -319,26 +322,11 @@ async function startHttpTransport(): Promise<void> {
             | string
             | undefined;
 
-          if (!apiKey || !instance) {
-            console.error(
-              "Gateway mode: Missing x-liongard-api-key or x-liongard-instance header"
-            );
-            res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "Missing credentials",
-                message:
-                  "Gateway mode requires X-Liongard-API-Key and X-Liongard-Instance headers",
-                required: ["X-Liongard-API-Key", "X-Liongard-Instance"],
-              })
-            );
-            return;
+          if (apiKey && instance) {
+            resetClient();
+            process.env.LIONGARD_API_KEY = apiKey;
+            process.env.LIONGARD_INSTANCE = instance;
           }
-
-          // Reset client so next getClient() picks up the new credentials
-          resetClient();
-          process.env.LIONGARD_API_KEY = apiKey;
-          process.env.LIONGARD_INSTANCE = instance;
         }
 
         transport.handleRequest(req, res);
