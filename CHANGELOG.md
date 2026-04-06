@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.6...v1.1.7) (2026-04-06)
+
+
+### Bug Fixes
+
+* allow unauthenticated tools/list in gateway mode ([c3eabdd](https://github.com/wyre-technology/liongard-mcp/commit/c3eabdd3aaf1a8f767d396730c53903c30f146cc))
+
 ## [1.1.6](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.5...v1.1.6) (2026-03-26)
 
 
