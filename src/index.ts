@@ -283,7 +283,7 @@ async function startHttpTransport(): Promise<void> {
   const isGatewayMode = authMode === "gateway";
 
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
+    sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
 
