@@ -1,3 +1,10 @@
+## [1.1.8](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.7...v1.1.8) (2026-04-06)
+
+
+### Bug Fixes
+
+* **ci:** resolve MCPB bundle path mismatch in release workflow ([babb7c9](https://github.com/wyre-technology/liongard-mcp/commit/babb7c9a6dfb8fad2d95837e0e44859020697b28))
+
 ## [1.1.7](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.6...v1.1.7) (2026-04-06)
 
 
