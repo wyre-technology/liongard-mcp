@@ -1,3 +1,10 @@
+## [1.1.11](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.10...v1.1.11) (2026-04-06)
+
+
+### Bug Fixes
+
+* update node-liongard SDK to 1.0.1 (trailing slash fix for API redirects) ([6279b27](https://github.com/wyre-technology/liongard-mcp/commit/6279b27e78f1ec8ca3b059e8d88388e5ba65afcb))
+
 ## [1.1.10](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.9...v1.1.10) (2026-04-06)
 
 
