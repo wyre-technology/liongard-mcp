@@ -254,8 +254,10 @@ function createMcpServer(): Server {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const cause = (error as any)?.cause?.message || (error as any)?.cause?.code || 'no cause';
+      console.error(`[TOOL ERROR] ${request.params.name}: ${message} | cause: ${cause} | instance: ${process.env.LIONGARD_INSTANCE} | apiKeyLen: ${(process.env.LIONGARD_API_KEY || '').length}`);
       return {
-        content: [{ type: "text", text: `Error: ${message}` }],
+        content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],
         isError: true,
       };
     }
