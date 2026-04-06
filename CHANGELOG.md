@@ -1,3 +1,10 @@
+## [1.1.12](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.11...v1.1.12) (2026-04-06)
+
+
+### Bug Fixes
+
+* remove async diag endpoint that broke TypeScript build ([a04ea51](https://github.com/wyre-technology/liongard-mcp/commit/a04ea5199aa07133cee9c2356c91318727b9cb57))
+
 ## [1.1.11](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.10...v1.1.11) (2026-04-06)
 
 
