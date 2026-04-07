@@ -36,13 +36,16 @@ describe("detections domain", () => {
       expect(detectionTools).toHaveLength(2);
     });
 
-    it("should have liongard_detections_list tool with conditions/fields", () => {
+    it("should have liongard_detections_list tool with date range and pagination", () => {
       const listTool = detectionTools.find(
         (t) => t.name === "liongard_detections_list"
       );
       expect(listTool).toBeDefined();
-      expect(listTool?.inputSchema.properties).toHaveProperty("conditions");
-      expect(listTool?.inputSchema.properties).toHaveProperty("fields");
+      expect(listTool?.inputSchema.properties).toHaveProperty("startDate");
+      expect(listTool?.inputSchema.properties).toHaveProperty("endDate");
+      expect(listTool?.inputSchema.properties).toHaveProperty("page");
+      expect(listTool?.inputSchema.properties).toHaveProperty("pageSize");
+      expect(listTool?.inputSchema.properties).toHaveProperty("filters");
     });
 
     it("should have liongard_detections_get tool with required id", () => {
@@ -56,32 +59,41 @@ describe("detections domain", () => {
 
   describe("handleDetectionTool", () => {
     describe("liongard_detections_list", () => {
-      it("should call client.detections.list with conditions/fields", async () => {
-        mockClient.detections.list.mockResolvedValue([]);
+      it("should forward pagination, date range, and filters to the SDK", async () => {
+        mockClient.detections.list.mockResolvedValue({ Data: [], Pagination: {} });
 
         const result = await handleDetectionTool(
           "liongard_detections_list",
           {
-            conditions: [{ path: "Inspector/ID", op: "=", value: 3 }],
-            fields: ["ID", "Type"],
+            page: 2,
+            pageSize: 50,
+            startDate: "2024-04-01T00:00:00Z",
+            endDate: "2024-04-30T00:00:00Z",
+            filters: [{ Field: "Severity", Op: "=", Value: "High" }],
           }
         );
 
         expect(mockClient.detections.list).toHaveBeenCalledWith({
-          conditions: [{ path: "Inspector/ID", op: "=", value: 3 }],
-          fields: ["ID", "Type"],
+          page: 2,
+          pageSize: 50,
+          startDate: "2024-04-01T00:00:00Z",
+          endDate: "2024-04-30T00:00:00Z",
+          filters: [{ Field: "Severity", Op: "=", Value: "High" }],
         });
         expect(result.isError).toBeUndefined();
       });
 
-      it("should call with empty options when none provided", async () => {
-        mockClient.detections.list.mockResolvedValue([]);
+      it("should call with all-undefined options when none provided", async () => {
+        mockClient.detections.list.mockResolvedValue({ Data: [], Pagination: {} });
 
         await handleDetectionTool("liongard_detections_list", {});
 
         expect(mockClient.detections.list).toHaveBeenCalledWith({
-          conditions: undefined,
-          fields: undefined,
+          page: undefined,
+          pageSize: undefined,
+          startDate: undefined,
+          endDate: undefined,
+          filters: undefined,
         });
       });
     });

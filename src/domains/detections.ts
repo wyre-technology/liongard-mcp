@@ -15,21 +15,33 @@ export const detectionTools: Tool[] = [
   {
     name: "liongard_detections_list",
     description:
-      "List detections in Liongard via GET /api/v1/detections. Optionally filter via Liongard query conditions and project specific fields. Returns a plain array (this endpoint is not paginated).",
+      "List detections in Liongard via POST /api/v2/detections. Defaults to the last 30 days; pass startDate/endDate (ISO-8601) to override the date range. Returns a paginated envelope with `Data` and `Pagination`.",
     inputSchema: {
       type: "object",
       properties: {
-        conditions: {
-          type: "array",
-          description:
-            'Optional Liongard query conditions, e.g. [{"path":"Inspector/ID","op":"=","value":3}]. Each condition is sent as a repeated conditions[] query param.',
-          items: { type: "object" },
+        page: {
+          type: "number",
+          description: "Page number (1-indexed, default: 1)",
         },
-        fields: {
+        pageSize: {
+          type: "number",
+          description: "Number of items per page (default: 25)",
+        },
+        startDate: {
+          type: "string",
+          description:
+            "Optional ISO-8601 start of date range. Defaults to 30 days ago if omitted.",
+        },
+        endDate: {
+          type: "string",
+          description:
+            "Optional ISO-8601 end of date range. Defaults to now if omitted.",
+        },
+        filters: {
           type: "array",
           description:
-            "Optional list of fields to return (projection). Each value is sent as a repeated fields[] query param.",
-          items: { type: "string" },
+            "Optional Liongard Filters array (e.g. by EnvironmentID, Severity).",
+          items: { type: "object" },
         },
       },
     },
@@ -63,13 +75,19 @@ export async function handleDetectionTool(
   switch (name) {
     case "liongard_detections_list": {
       const params = args as {
-        conditions?: Array<Record<string, unknown>>;
-        fields?: string[];
+        page?: number;
+        pageSize?: number;
+        startDate?: string;
+        endDate?: string;
+        filters?: Array<Record<string, unknown>>;
       };
       try {
         const response = await client.detections.list({
-          conditions: params.conditions,
-          fields: params.fields,
+          page: params.page,
+          pageSize: params.pageSize,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          filters: params.filters,
         });
         return {
           content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
@@ -80,7 +98,7 @@ export async function handleDetectionTool(
           content: [
             {
               type: "text",
-              text: `Error listing detections: ${message}. Liongard's /api/v1/detections endpoint typically requires a 'conditions' filter, e.g. [{"path":"Inspector/ID","op":"=","value":3}].`,
+              text: `Error listing detections: ${message}`,
             },
           ],
           isError: true,
