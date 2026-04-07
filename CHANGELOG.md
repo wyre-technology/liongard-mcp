@@ -1,3 +1,10 @@
+## [2.0.4](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.3...v2.0.4) (2026-04-07)
+
+
+### Bug Fixes
+
+* **timeline:** align liongard_timeline_list with node-liongard 3.0.2 (GET /api/v1/timeline) ([b6e5a96](https://github.com/wyre-technology/liongard-mcp/commit/b6e5a968f3fa696fc3e6d0c8d48c205be44114cc))
+
 ## [2.0.3](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.2...v2.0.3) (2026-04-07)
 
 
