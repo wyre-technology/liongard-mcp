@@ -66,21 +66,42 @@ export async function handleDetectionTool(
         conditions?: Array<Record<string, unknown>>;
         fields?: string[];
       };
-      const response = await client.detections.list({
-        conditions: params.conditions,
-        fields: params.fields,
-      });
-      return {
-        content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
-      };
+      try {
+        const response = await client.detections.list({
+          conditions: params.conditions,
+          fields: params.fields,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing detections: ${message}. Liongard's /api/v1/detections endpoint typically requires a 'conditions' filter, e.g. [{"path":"Inspector/ID","op":"=","value":3}].`,
+            },
+          ],
+          isError: true,
+        };
+      }
     }
 
     case "liongard_detections_get": {
       const { id } = args as { id: number };
-      const detection = await client.detections.get(id);
-      return {
-        content: [{ type: "text", text: JSON.stringify(detection, null, 2) }],
-      };
+      try {
+        const detection = await client.detections.get(id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(detection, null, 2) }],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error getting detection ${id}: ${message}` }],
+          isError: true,
+        };
+      }
     }
 
     default:

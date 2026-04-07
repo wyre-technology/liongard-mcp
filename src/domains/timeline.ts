@@ -53,13 +53,21 @@ export async function handleTimelineTool(
         pageSize?: number;
         filters?: Record<string, unknown>;
       };
-      const response = await client.timeline.list(
-        { page: params.page, pageSize: params.pageSize },
-        params.filters
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
-      };
+      try {
+        const response = await client.timeline.list(
+          { page: params.page, pageSize: params.pageSize },
+          params.filters
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error listing timeline entries: ${message}` }],
+          isError: true,
+        };
+      }
     }
 
     default:
