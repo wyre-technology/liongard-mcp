@@ -15,24 +15,38 @@ export const detectionTools: Tool[] = [
   {
     name: "liongard_detections_list",
     description:
-      "List detections in Liongard with pagination and optional filters. Detections represent configuration changes and anomalies identified through inspections.",
+      "List detections in Liongard via GET /api/v1/detections. Optionally filter via Liongard query conditions and project specific fields. Returns a plain array (this endpoint is not paginated).",
     inputSchema: {
       type: "object",
       properties: {
-        page: {
-          type: "number",
-          description: "Page number (1-indexed, default: 1)",
-        },
-        pageSize: {
-          type: "number",
-          description: "Number of items per page (default: 50)",
-        },
-        filters: {
-          type: "object",
+        conditions: {
+          type: "array",
           description:
-            "Optional filters to narrow results (e.g., by environment, severity)",
+            'Optional Liongard query conditions, e.g. [{"path":"Inspector/ID","op":"=","value":3}]. Each condition is sent as a repeated conditions[] query param.',
+          items: { type: "object" },
+        },
+        fields: {
+          type: "array",
+          description:
+            "Optional list of fields to return (projection). Each value is sent as a repeated fields[] query param.",
+          items: { type: "string" },
         },
       },
+    },
+  },
+  {
+    name: "liongard_detections_get",
+    description:
+      "Get detailed information about a specific detection by its ID via GET /api/v1/detections/{id}.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: {
+          type: "number",
+          description: "The unique detection ID",
+        },
+      },
+      required: ["id"],
     },
   },
 ];
@@ -49,16 +63,23 @@ export async function handleDetectionTool(
   switch (name) {
     case "liongard_detections_list": {
       const params = args as {
-        page?: number;
-        pageSize?: number;
-        filters?: Record<string, unknown>;
+        conditions?: Array<Record<string, unknown>>;
+        fields?: string[];
       };
-      const response = await client.detections.list(
-        { page: params.page, pageSize: params.pageSize },
-        params.filters
-      );
+      const response = await client.detections.list({
+        conditions: params.conditions,
+        fields: params.fields,
+      });
       return {
         content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
+      };
+    }
+
+    case "liongard_detections_get": {
+      const { id } = args as { id: number };
+      const detection = await client.detections.get(id);
+      return {
+        content: [{ type: "text", text: JSON.stringify(detection, null, 2) }],
       };
     }
 

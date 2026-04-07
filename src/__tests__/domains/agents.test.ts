@@ -10,7 +10,6 @@ const mockClient = {
   agents: {
     list: vi.fn(),
     delete: vi.fn(),
-    generateInstaller: vi.fn(),
   },
 };
 
@@ -19,7 +18,6 @@ vi.mock("../../utils/client.js", () => ({
     agents: {
       list: vi.fn(),
       delete: vi.fn(),
-      generateInstaller: vi.fn(),
     },
   }),
 }));
@@ -34,8 +32,8 @@ describe("agents domain", () => {
   });
 
   describe("agentTools", () => {
-    it("should export three agent tools", () => {
-      expect(agentTools).toHaveLength(3);
+    it("should export two agent tools", () => {
+      expect(agentTools).toHaveLength(2);
     });
 
     it("should have liongard_agents_list tool", () => {
@@ -47,28 +45,20 @@ describe("agents domain", () => {
       expect(listTool?.inputSchema.properties).toHaveProperty("pageSize");
     });
 
-    it("should have liongard_agents_delete tool with required agentIds", () => {
+    it("should have liongard_agents_delete tool with required id", () => {
       const deleteTool = agentTools.find(
         (t) => t.name === "liongard_agents_delete"
       );
       expect(deleteTool).toBeDefined();
-      expect(deleteTool?.inputSchema.properties).toHaveProperty("agentIds");
-      expect(deleteTool?.inputSchema.required).toContain("agentIds");
-    });
-
-    it("should have liongard_agents_installer tool", () => {
-      const installerTool = agentTools.find(
-        (t) => t.name === "liongard_agents_installer"
-      );
-      expect(installerTool).toBeDefined();
+      expect(deleteTool?.inputSchema.properties).toHaveProperty("id");
+      expect(deleteTool?.inputSchema.required).toContain("id");
     });
   });
 
   describe("handleAgentTool", () => {
     describe("liongard_agents_list", () => {
       it("should call client.agents.list with pagination params", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.agents.list.mockResolvedValue(mockResponse);
+        mockClient.agents.list.mockResolvedValue({ Data: [], Pagination: {} });
 
         const result = await handleAgentTool("liongard_agents_list", {
           page: 1,
@@ -81,43 +71,18 @@ describe("agents domain", () => {
         });
         expect(result.isError).toBeUndefined();
       });
-
-      it("should call with default params when none provided", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.agents.list.mockResolvedValue(mockResponse);
-
-        await handleAgentTool("liongard_agents_list", {});
-
-        expect(mockClient.agents.list).toHaveBeenCalledWith({
-          page: undefined,
-          pageSize: undefined,
-        });
-      });
     });
 
     describe("liongard_agents_delete", () => {
-      it("should call client.agents.delete with agent IDs", async () => {
+      it("should call client.agents.delete with the agent ID", async () => {
         mockClient.agents.delete.mockResolvedValue(undefined);
 
         const result = await handleAgentTool("liongard_agents_delete", {
-          agentIds: [1, 2, 3],
+          id: 42,
         });
 
-        expect(mockClient.agents.delete).toHaveBeenCalledWith([1, 2, 3]);
-        expect(result.content[0].text).toContain("3 agent(s)");
-        expect(result.isError).toBeUndefined();
-      });
-    });
-
-    describe("liongard_agents_installer", () => {
-      it("should call client.agents.generateInstaller", async () => {
-        const mockInstaller = { url: "https://example.com/installer.exe" };
-        mockClient.agents.generateInstaller.mockResolvedValue(mockInstaller);
-
-        const result = await handleAgentTool("liongard_agents_installer", {});
-
-        expect(mockClient.agents.generateInstaller).toHaveBeenCalled();
-        expect(result.content[0].text).toContain("installer.exe");
+        expect(mockClient.agents.delete).toHaveBeenCalledWith(42);
+        expect(result.content[0].text).toContain("42");
         expect(result.isError).toBeUndefined();
       });
     });

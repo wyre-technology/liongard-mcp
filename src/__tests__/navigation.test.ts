@@ -17,7 +17,7 @@ vi.mock("../utils/client.js", () => ({
       count: vi.fn(),
       getRelatedEntities: vi.fn(),
     },
-    agents: { list: vi.fn(), delete: vi.fn(), generateInstaller: vi.fn() },
+    agents: { list: vi.fn(), delete: vi.fn() },
     inspectors: { list: vi.fn(), get: vi.fn() },
     launchpoints: {
       list: vi.fn(),
@@ -25,8 +25,7 @@ vi.mock("../utils/client.js", () => ({
       runNow: vi.fn(),
     },
     systems: { list: vi.fn(), get: vi.fn() },
-    detections: { list: vi.fn() },
-    alerts: { list: vi.fn(), get: vi.fn() },
+    detections: { list: vi.fn(), get: vi.fn() },
     metrics: { list: vi.fn(), evaluate: vi.fn(), evaluateSystems: vi.fn() },
     timeline: { list: vi.fn() },
     inventory: {
@@ -36,21 +35,21 @@ vi.mock("../utils/client.js", () => ({
   }),
 }));
 
+const DOMAINS = [
+  "environments",
+  "agents",
+  "inspections",
+  "systems",
+  "detections",
+  "metrics",
+  "timeline",
+  "inventory",
+] as const;
+
 describe("navigation and state management", () => {
   describe("domain descriptions", () => {
-    it("should define all nine domains with descriptions", async () => {
-      const domains = [
-        "environments",
-        "agents",
-        "inspections",
-        "systems",
-        "detections",
-        "alerts",
-        "metrics",
-        "timeline",
-        "inventory",
-      ];
-      expect(domains).toHaveLength(9);
+    it("should define all eight domains with descriptions", () => {
+      expect(DOMAINS).toHaveLength(8);
     });
   });
 
@@ -65,7 +64,7 @@ describe("navigation and state management", () => {
 
     it("should return agent tools for agents domain", async () => {
       const { agentTools } = await import("../domains/agents.js");
-      expect(agentTools).toHaveLength(3);
+      expect(agentTools).toHaveLength(2);
       expect(agentTools[0].name).toBe("liongard_agents_list");
     });
 
@@ -85,14 +84,8 @@ describe("navigation and state management", () => {
 
     it("should return detection tools for detections domain", async () => {
       const { detectionTools } = await import("../domains/detections.js");
-      expect(detectionTools).toHaveLength(1);
+      expect(detectionTools).toHaveLength(2);
       expect(detectionTools[0].name).toBe("liongard_detections_list");
-    });
-
-    it("should return alert tools for alerts domain", async () => {
-      const { alertTools } = await import("../domains/alerts.js");
-      expect(alertTools).toHaveLength(2);
-      expect(alertTools[0].name).toBe("liongard_alerts_list");
     });
 
     it("should return metric tools for metrics domain", async () => {
@@ -152,13 +145,6 @@ describe("navigation and state management", () => {
       });
     });
 
-    it("should prefix alert tools with liongard_alerts_", async () => {
-      const { alertTools } = await import("../domains/alerts.js");
-      alertTools.forEach((tool) => {
-        expect(tool.name).toMatch(/^liongard_alerts_/);
-      });
-    });
-
     it("should prefix metric tools with liongard_metrics_", async () => {
       const { metricTools } = await import("../domains/metrics.js");
       metricTools.forEach((tool) => {
@@ -190,17 +176,7 @@ describe("navigation and state management", () => {
           properties: {
             domain: {
               type: "string",
-              enum: [
-                "environments",
-                "agents",
-                "inspections",
-                "systems",
-                "detections",
-                "alerts",
-                "metrics",
-                "timeline",
-                "inventory",
-              ],
+              enum: [...DOMAINS],
             },
           },
           required: ["domain"],
@@ -208,22 +184,18 @@ describe("navigation and state management", () => {
       };
 
       expect(navigateTool.name).toBe("liongard_navigate");
-      expect(navigateTool.inputSchema.properties.domain.enum).toHaveLength(
-        9
-      );
+      expect(navigateTool.inputSchema.properties.domain.enum).toHaveLength(8);
       expect(navigateTool.inputSchema.required).toContain("domain");
     });
-
   });
 
   describe("all tools listed upfront", () => {
-    it("should expose all 25 domain tools plus navigate (26 total)", async () => {
+    it("should expose all domain tools", async () => {
       const { environmentTools } = await import("../domains/environments.js");
       const { agentTools } = await import("../domains/agents.js");
       const { inspectionTools } = await import("../domains/inspections.js");
       const { systemTools } = await import("../domains/systems.js");
       const { detectionTools } = await import("../domains/detections.js");
-      const { alertTools } = await import("../domains/alerts.js");
       const { metricTools } = await import("../domains/metrics.js");
       const { timelineTools } = await import("../domains/timeline.js");
       const { inventoryTools } = await import("../domains/inventory.js");
@@ -234,14 +206,13 @@ describe("navigation and state management", () => {
         ...inspectionTools,
         ...systemTools,
         ...detectionTools,
-        ...alertTools,
         ...metricTools,
         ...timelineTools,
         ...inventoryTools,
       ];
 
-      // 25 domain tools + 1 navigate tool = 26 total
-      expect(allDomainTools).toHaveLength(25);
+      // 5 + 2 + 4 + 2 + 2 + 3 + 1 + 4 = 23 domain tools
+      expect(allDomainTools).toHaveLength(23);
     });
 
     it("should have no duplicate tool names across domains", async () => {
@@ -250,7 +221,6 @@ describe("navigation and state management", () => {
       const { inspectionTools } = await import("../domains/inspections.js");
       const { systemTools } = await import("../domains/systems.js");
       const { detectionTools } = await import("../domains/detections.js");
-      const { alertTools } = await import("../domains/alerts.js");
       const { metricTools } = await import("../domains/metrics.js");
       const { timelineTools } = await import("../domains/timeline.js");
       const { inventoryTools } = await import("../domains/inventory.js");
@@ -261,7 +231,6 @@ describe("navigation and state management", () => {
         ...inspectionTools,
         ...systemTools,
         ...detectionTools,
-        ...alertTools,
         ...metricTools,
         ...timelineTools,
         ...inventoryTools,
@@ -273,87 +242,27 @@ describe("navigation and state management", () => {
   });
 
   describe("tool schema validation", () => {
-    it("should have valid inputSchema for all environment tools", async () => {
-      const { environmentTools } = await import(
-        "../domains/environments.js"
-      );
-      environmentTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
+    const domainImports = [
+      ["environments", () => import("../domains/environments.js"), "environmentTools"],
+      ["agents", () => import("../domains/agents.js"), "agentTools"],
+      ["inspections", () => import("../domains/inspections.js"), "inspectionTools"],
+      ["systems", () => import("../domains/systems.js"), "systemTools"],
+      ["detections", () => import("../domains/detections.js"), "detectionTools"],
+      ["metrics", () => import("../domains/metrics.js"), "metricTools"],
+      ["timeline", () => import("../domains/timeline.js"), "timelineTools"],
+      ["inventory", () => import("../domains/inventory.js"), "inventoryTools"],
+    ] as const;
 
-    it("should have valid inputSchema for all agent tools", async () => {
-      const { agentTools } = await import("../domains/agents.js");
-      agentTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
+    for (const [name, importFn, exportName] of domainImports) {
+      it(`should have valid inputSchema for all ${name} tools`, async () => {
+        const mod = (await importFn()) as Record<string, unknown>;
+        const tools = mod[exportName] as Array<{ inputSchema: { type: string; properties: unknown } }>;
+        tools.forEach((tool) => {
+          expect(tool.inputSchema).toBeDefined();
+          expect(tool.inputSchema.type).toBe("object");
+          expect(tool.inputSchema.properties).toBeDefined();
+        });
       });
-    });
-
-    it("should have valid inputSchema for all inspection tools", async () => {
-      const { inspectionTools } = await import("../domains/inspections.js");
-      inspectionTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all system tools", async () => {
-      const { systemTools } = await import("../domains/systems.js");
-      systemTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all detection tools", async () => {
-      const { detectionTools } = await import("../domains/detections.js");
-      detectionTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all alert tools", async () => {
-      const { alertTools } = await import("../domains/alerts.js");
-      alertTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all metric tools", async () => {
-      const { metricTools } = await import("../domains/metrics.js");
-      metricTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all timeline tools", async () => {
-      const { timelineTools } = await import("../domains/timeline.js");
-      timelineTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
-
-    it("should have valid inputSchema for all inventory tools", async () => {
-      const { inventoryTools } = await import("../domains/inventory.js");
-      inventoryTools.forEach((tool) => {
-        expect(tool.inputSchema).toBeDefined();
-        expect(tool.inputSchema.type).toBe("object");
-        expect(tool.inputSchema.properties).toBeDefined();
-      });
-    });
+    }
   });
 });

@@ -35,7 +35,6 @@ import {
 } from "./domains/inspections.js";
 import { systemTools, handleSystemTool } from "./domains/systems.js";
 import { detectionTools, handleDetectionTool } from "./domains/detections.js";
-import { alertTools, handleAlertTool } from "./domains/alerts.js";
 import { metricTools, handleMetricTool } from "./domains/metrics.js";
 import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
 import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
@@ -56,7 +55,6 @@ type Domain =
   | "inspections"
   | "systems"
   | "detections"
-  | "alerts"
   | "metrics"
   | "timeline"
   | "inventory";
@@ -75,8 +73,6 @@ const domainDescriptions: Record<Domain, string> = {
     "System management - list and get infrastructure components discovered through inspections",
   detections:
     "Detection monitoring - list configuration changes and anomalies identified by inspections",
-  alerts:
-    "Alert management - list and get alerts generated from detection rules",
   metrics:
     "Metrics evaluation - list metrics, evaluate across systems, and evaluate per system",
   timeline:
@@ -94,7 +90,6 @@ const domainToolMap: Record<Domain, Tool[]> = {
   inspections: inspectionTools,
   systems: systemTools,
   detections: detectionTools,
-  alerts: alertTools,
   metrics: metricTools,
   timeline: timelineTools,
   inventory: inventoryTools,
@@ -128,7 +123,6 @@ const navigateTool: Tool = {
           "inspections",
           "systems",
           "detections",
-          "alerts",
           "metrics",
           "timeline",
           "inventory",
@@ -139,7 +133,6 @@ const navigateTool: Tool = {
 - inspections: ${domainDescriptions.inspections}
 - systems: ${domainDescriptions.systems}
 - detections: ${domainDescriptions.detections}
-- alerts: ${domainDescriptions.alerts}
 - metrics: ${domainDescriptions.metrics}
 - timeline: ${domainDescriptions.timeline}
 - inventory: ${domainDescriptions.inventory}`,
@@ -229,9 +222,6 @@ function createMcpServer(): Server {
       if (name.startsWith("liongard_detections_")) {
         return await handleDetectionTool(name, toolArgs);
       }
-      if (name.startsWith("liongard_alerts_")) {
-        return await handleAlertTool(name, toolArgs);
-      }
       if (name.startsWith("liongard_metrics_")) {
         return await handleMetricTool(name, toolArgs);
       }
@@ -254,7 +244,8 @@ function createMcpServer(): Server {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const cause = (error as any)?.cause?.message || (error as any)?.cause?.code || 'no cause';
+      const errCause = (error as { cause?: { message?: string; code?: string } })?.cause;
+      const cause = errCause?.message || errCause?.code || 'no cause';
       console.error(`[TOOL ERROR] ${request.params.name}: ${message} | cause: ${cause} | instance: ${process.env.LIONGARD_INSTANCE} | apiKeyLen: ${(process.env.LIONGARD_API_KEY || '').length}`);
       return {
         content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],

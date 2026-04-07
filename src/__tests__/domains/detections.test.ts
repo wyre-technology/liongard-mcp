@@ -12,12 +12,13 @@ import {
 const mockClient = {
   detections: {
     list: vi.fn(),
+    get: vi.fn(),
   },
 };
 
 vi.mock("../../utils/client.js", () => ({
   getClient: vi.fn().mockResolvedValue({
-    detections: { list: vi.fn() },
+    detections: { list: vi.fn(), get: vi.fn() },
   }),
 }));
 
@@ -31,66 +32,70 @@ describe("detections domain", () => {
   });
 
   describe("detectionTools", () => {
-    it("should export one detection tool", () => {
-      expect(detectionTools).toHaveLength(1);
+    it("should export two detection tools", () => {
+      expect(detectionTools).toHaveLength(2);
     });
 
-    it("should have liongard_detections_list tool", () => {
+    it("should have liongard_detections_list tool with conditions/fields", () => {
       const listTool = detectionTools.find(
         (t) => t.name === "liongard_detections_list"
       );
       expect(listTool).toBeDefined();
-      expect(listTool?.inputSchema.properties).toHaveProperty("page");
-      expect(listTool?.inputSchema.properties).toHaveProperty("pageSize");
-      expect(listTool?.inputSchema.properties).toHaveProperty("filters");
+      expect(listTool?.inputSchema.properties).toHaveProperty("conditions");
+      expect(listTool?.inputSchema.properties).toHaveProperty("fields");
+    });
+
+    it("should have liongard_detections_get tool with required id", () => {
+      const getTool = detectionTools.find(
+        (t) => t.name === "liongard_detections_get"
+      );
+      expect(getTool).toBeDefined();
+      expect(getTool?.inputSchema.required).toContain("id");
     });
   });
 
   describe("handleDetectionTool", () => {
     describe("liongard_detections_list", () => {
-      it("should call client.detections.list with pagination params", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.detections.list.mockResolvedValue(mockResponse);
+      it("should call client.detections.list with conditions/fields", async () => {
+        mockClient.detections.list.mockResolvedValue([]);
 
         const result = await handleDetectionTool(
           "liongard_detections_list",
-          { page: 1, pageSize: 50 }
+          {
+            conditions: [{ path: "Inspector/ID", op: "=", value: 3 }],
+            fields: ["ID", "Type"],
+          }
         );
 
-        expect(mockClient.detections.list).toHaveBeenCalledWith(
-          { page: 1, pageSize: 50 },
-          undefined
-        );
+        expect(mockClient.detections.list).toHaveBeenCalledWith({
+          conditions: [{ path: "Inspector/ID", op: "=", value: 3 }],
+          fields: ["ID", "Type"],
+        });
         expect(result.isError).toBeUndefined();
       });
 
-      it("should pass filters when provided", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.detections.list.mockResolvedValue(mockResponse);
-
-        const filters = { severity: "high" };
-        await handleDetectionTool("liongard_detections_list", {
-          page: 1,
-          pageSize: 25,
-          filters,
-        });
-
-        expect(mockClient.detections.list).toHaveBeenCalledWith(
-          { page: 1, pageSize: 25 },
-          filters
-        );
-      });
-
-      it("should call with default params when none provided", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.detections.list.mockResolvedValue(mockResponse);
+      it("should call with empty options when none provided", async () => {
+        mockClient.detections.list.mockResolvedValue([]);
 
         await handleDetectionTool("liongard_detections_list", {});
 
-        expect(mockClient.detections.list).toHaveBeenCalledWith(
-          { page: undefined, pageSize: undefined },
-          undefined
-        );
+        expect(mockClient.detections.list).toHaveBeenCalledWith({
+          conditions: undefined,
+          fields: undefined,
+        });
+      });
+    });
+
+    describe("liongard_detections_get", () => {
+      it("should call client.detections.get with the id", async () => {
+        mockClient.detections.get.mockResolvedValue({ ID: 7 });
+
+        const result = await handleDetectionTool("liongard_detections_get", {
+          id: 7,
+        });
+
+        expect(mockClient.detections.get).toHaveBeenCalledWith(7);
+        expect(result.isError).toBeUndefined();
       });
     });
 

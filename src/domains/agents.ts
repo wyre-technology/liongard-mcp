@@ -33,26 +33,16 @@ export const agentTools: Tool[] = [
   {
     name: "liongard_agents_delete",
     description:
-      "Bulk delete agents by their IDs. Use with caution - this permanently removes agents from Liongard.",
+      "Delete an agent by its ID. Use with caution - this permanently removes the agent from Liongard.",
     inputSchema: {
       type: "object",
       properties: {
-        agentIds: {
-          type: "array",
-          items: { type: "number" },
-          description: "Array of agent IDs to delete",
+        id: {
+          type: "number",
+          description: "The unique agent ID to delete",
         },
       },
-      required: ["agentIds"],
-    },
-  },
-  {
-    name: "liongard_agents_installer",
-    description:
-      "Generate a dynamic agent installer. Returns installer download information for deploying a new Liongard agent.",
-    inputSchema: {
-      type: "object",
-      properties: {},
+      required: ["id"],
     },
   },
 ];
@@ -79,23 +69,11 @@ export async function handleAgentTool(
     }
 
     case "liongard_agents_delete": {
-      const { agentIds } = args as { agentIds: number[] };
-      await client.agents.delete(agentIds);
+      const { id } = args as { id: number };
+      await client.agents.delete(id);
       return {
         content: [
-          {
-            type: "text",
-            text: `Successfully deleted ${agentIds.length} agent(s).`,
-          },
-        ],
-      };
-    }
-
-    case "liongard_agents_installer": {
-      const installer = await client.agents.generateInstaller();
-      return {
-        content: [
-          { type: "text", text: JSON.stringify(installer, null, 2) },
+          { type: "text", text: `Successfully deleted agent ${id}.` },
         ],
       };
     }
