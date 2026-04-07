@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.1...v2.0.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* **inventory:** require environment param, bump node-liongard to v3.0.0 ([1a176fb](https://github.com/wyre-technology/liongard-mcp/commit/1a176fb1228ee9aeaae8291579e136ff1682e412))
+
 ## [2.0.1](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.0...v2.0.1) (2026-04-07)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@wyre-technology/liongard-mcp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Liongard MCP server for Claude",
   "type": "module",
   "main": "dist/index.js",
