@@ -15,10 +15,15 @@ export const inventoryTools: Tool[] = [
   {
     name: "liongard_inventory_identities",
     description:
-      "List asset identities in Liongard with pagination and optional filters. Identities represent users, accounts, and other identity entities discovered through inspections.",
+      "List asset identities in Liongard for a specific environment. Identities represent users, accounts, and other identity entities discovered through inspections. Use liongard_environments_list to find environment IDs.",
     inputSchema: {
       type: "object",
       properties: {
+        environment: {
+          type: "number",
+          description:
+            "REQUIRED. Liongard Environment ID to scope the query to. Use liongard_environments_list to discover environment IDs.",
+        },
         page: {
           type: "number",
           description: "Page number (1-indexed, default: 1)",
@@ -28,11 +33,13 @@ export const inventoryTools: Tool[] = [
           description: "Number of items per page (default: 50)",
         },
         filters: {
-          type: "object",
+          type: "array",
           description:
-            "Optional filters to narrow results (e.g., by environment)",
+            "Optional Liongard query filters (array of filter objects).",
+          items: { type: "object" },
         },
       },
+      required: ["environment"],
     },
   },
   {
@@ -53,10 +60,15 @@ export const inventoryTools: Tool[] = [
   {
     name: "liongard_inventory_devices",
     description:
-      "List device profiles in Liongard with pagination and optional filters. Device profiles represent hardware and software assets discovered through inspections.",
+      "List device profiles in Liongard for a specific environment. Device profiles represent hardware and software assets discovered through inspections. Use liongard_environments_list to find environment IDs.",
     inputSchema: {
       type: "object",
       properties: {
+        environment: {
+          type: "number",
+          description:
+            "REQUIRED. Liongard Environment ID to scope the query to. Use liongard_environments_list to discover environment IDs.",
+        },
         page: {
           type: "number",
           description: "Page number (1-indexed, default: 1)",
@@ -66,11 +78,13 @@ export const inventoryTools: Tool[] = [
           description: "Number of items per page (default: 50)",
         },
         filters: {
-          type: "object",
+          type: "array",
           description:
-            "Optional filters to narrow results (e.g., by environment)",
+            "Optional Liongard query filters (array of filter objects).",
+          items: { type: "object" },
         },
       },
+      required: ["environment"],
     },
   },
   {
@@ -102,17 +116,28 @@ export async function handleInventoryTool(
   switch (name) {
     case "liongard_inventory_identities": {
       const params = args as {
+        environment: number;
         page?: number;
         pageSize?: number;
-        filters?: Record<string, unknown>;
+        filters?: Array<Record<string, unknown>> | Record<string, unknown>;
       };
-      const response = await client.inventory.identities.list(
-        { page: params.page, pageSize: params.pageSize },
-        params.filters
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
-      };
+      try {
+        const response = await client.inventory.identities.list({
+          environment: params.environment,
+          page: params.page,
+          pageSize: params.pageSize,
+          filters: params.filters,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error listing identities: ${message}` }],
+          isError: true,
+        };
+      }
     }
 
     case "liongard_inventory_identity_get": {
@@ -125,17 +150,28 @@ export async function handleInventoryTool(
 
     case "liongard_inventory_devices": {
       const params = args as {
+        environment: number;
         page?: number;
         pageSize?: number;
-        filters?: Record<string, unknown>;
+        filters?: Array<Record<string, unknown>> | Record<string, unknown>;
       };
-      const response = await client.inventory.devices.list(
-        { page: params.page, pageSize: params.pageSize },
-        params.filters
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
-      };
+      try {
+        const response = await client.inventory.devices.list({
+          environment: params.environment,
+          page: params.page,
+          pageSize: params.pageSize,
+          filters: params.filters,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text", text: `Error listing devices: ${message}` }],
+          isError: true,
+        };
+      }
     }
 
     case "liongard_inventory_device_get": {

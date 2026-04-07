@@ -85,21 +85,23 @@ describe("inventory domain", () => {
 
   describe("handleInventoryTool", () => {
     describe("liongard_inventory_identities", () => {
-      it("should call client.inventory.identities.list with pagination", async () => {
+      it("should call client.inventory.identities.list with environment and pagination", async () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.inventory.identities.list.mockResolvedValue(mockResponse);
 
         const result = await handleInventoryTool(
           "liongard_inventory_identities",
-          { page: 1, pageSize: 50 }
+          { environment: 8815, page: 1, pageSize: 50 }
         );
 
         expect(
           mockClient.inventory.identities.list
-        ).toHaveBeenCalledWith(
-          { page: 1, pageSize: 50 },
-          undefined
-        );
+        ).toHaveBeenCalledWith({
+          environment: 8815,
+          page: 1,
+          pageSize: 50,
+          filters: undefined,
+        });
         expect(result.isError).toBeUndefined();
       });
 
@@ -107,17 +109,20 @@ describe("inventory domain", () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.inventory.identities.list.mockResolvedValue(mockResponse);
 
-        const filters = { environmentId: 5 };
+        const filters = [{ Field: "Type", Op: "Match", Value: "user" }];
         await handleInventoryTool("liongard_inventory_identities", {
+          environment: 8815,
           filters,
         });
 
         expect(
           mockClient.inventory.identities.list
-        ).toHaveBeenCalledWith(
-          { page: undefined, pageSize: undefined },
-          filters
-        );
+        ).toHaveBeenCalledWith({
+          environment: 8815,
+          page: undefined,
+          pageSize: undefined,
+          filters,
+        });
       });
     });
 
@@ -140,19 +145,21 @@ describe("inventory domain", () => {
     });
 
     describe("liongard_inventory_devices", () => {
-      it("should call client.inventory.devices.list with pagination", async () => {
+      it("should call client.inventory.devices.list with environment and pagination", async () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.inventory.devices.list.mockResolvedValue(mockResponse);
 
         const result = await handleInventoryTool(
           "liongard_inventory_devices",
-          { page: 2, pageSize: 25 }
+          { environment: 49198, page: 2, pageSize: 25 }
         );
 
-        expect(mockClient.inventory.devices.list).toHaveBeenCalledWith(
-          { page: 2, pageSize: 25 },
-          undefined
-        );
+        expect(mockClient.inventory.devices.list).toHaveBeenCalledWith({
+          environment: 49198,
+          page: 2,
+          pageSize: 25,
+          filters: undefined,
+        });
         expect(result.isError).toBeUndefined();
       });
 
@@ -160,15 +167,18 @@ describe("inventory domain", () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.inventory.devices.list.mockResolvedValue(mockResponse);
 
-        const filters = { type: "server" };
+        const filters = [{ Field: "Type", Op: "Match", Value: "server" }];
         await handleInventoryTool("liongard_inventory_devices", {
+          environment: 49198,
           filters,
         });
 
-        expect(mockClient.inventory.devices.list).toHaveBeenCalledWith(
-          { page: undefined, pageSize: undefined },
-          filters
-        );
+        expect(mockClient.inventory.devices.list).toHaveBeenCalledWith({
+          environment: 49198,
+          page: undefined,
+          pageSize: undefined,
+          filters,
+        });
       });
     });
 
