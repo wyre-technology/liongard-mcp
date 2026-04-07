@@ -1,3 +1,10 @@
+## [1.1.13](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.12...v1.1.13) (2026-04-07)
+
+
+### Bug Fixes
+
+* update node-liongard SDK to v1.0.2 with double-read body fix ([38d370e](https://github.com/wyre-technology/liongard-mcp/commit/38d370ed009581253c9a7eb83da2d877eab212d1))
+
 ## [1.1.12](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.11...v1.1.12) (2026-04-06)
 
 
