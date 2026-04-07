@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.0...v2.0.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* **deps:** bump node-liongard to 2.0.1 and harden timeline/detections handlers ([e6a1c1e](https://github.com/wyre-technology/liongard-mcp/commit/e6a1c1e1e549d63856aedfed32caf0f08898a3bd))
+
 # [2.0.0](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.13...v2.0.0) (2026-04-07)
 
 
