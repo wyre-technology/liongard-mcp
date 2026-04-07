@@ -1,3 +1,29 @@
+# [2.0.0](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.13...v2.0.0) (2026-04-07)
+
+
+### Features
+
+* **deps:** bump node-liongard to v2, remove alerts tools (webhook-only) ([9370eba](https://github.com/wyre-technology/liongard-mcp/commit/9370eba557585630e365136c0cdd3d167d9b8d47))
+
+
+### BREAKING CHANGES
+
+* **deps:** liongard_alerts_* tools removed. Liongard alerts are
+delivered via webhooks only — there is no REST endpoint for alerts in
+the public Liongard API. Subscribe to the alerts.created / alerts.updated
+webhook events instead.
+
+- Bump @wyre-technology/node-liongard from ^1.0.2 to ^2.0.0
+- Remove src/domains/alerts.ts and the alerts domain wiring in index.ts
+- liongard_agents_delete now takes a single { id } (was { agentIds: [] })
+  to match the new SDK signature backed by DELETE /api/v1/agents/{id}
+- liongard_agents_installer removed — endpoint not in public API
+- liongard_detections_list now accepts { conditions[], fields[] } and
+  calls GET /api/v1/detections (was POST /api/v2/detections)
+- New liongard_detections_get tool for GET /api/v1/detections/{id}
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
 ## [1.1.13](https://github.com/wyre-technology/liongard-mcp/compare/v1.1.12...v1.1.13) (2026-04-07)
 
 
