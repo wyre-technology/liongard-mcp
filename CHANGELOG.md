@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.2...v2.0.3) (2026-04-07)
+
+
+### Bug Fixes
+
+* **detections:** align liongard_detections_list with node-liongard 3.0.1 (POST /api/v2/detections) ([a70f00b](https://github.com/wyre-technology/liongard-mcp/commit/a70f00b96d0f8480878199867d4deb5acf1c630e))
+
 ## [2.0.2](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.1...v2.0.2) (2026-04-07)
 
 
