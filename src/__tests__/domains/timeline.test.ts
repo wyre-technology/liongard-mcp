@@ -35,62 +35,43 @@ describe("timeline domain", () => {
       expect(timelineTools).toHaveLength(1);
     });
 
-    it("should have liongard_timeline_list tool", () => {
+    it("should have liongard_timeline_list tool with only page/pageSize", () => {
       const listTool = timelineTools.find(
         (t) => t.name === "liongard_timeline_list"
       );
       expect(listTool).toBeDefined();
       expect(listTool?.inputSchema.properties).toHaveProperty("page");
       expect(listTool?.inputSchema.properties).toHaveProperty("pageSize");
-      expect(listTool?.inputSchema.properties).toHaveProperty("filters");
+      expect(listTool?.inputSchema.properties).not.toHaveProperty("filters");
     });
   });
 
   describe("handleTimelineTool", () => {
     describe("liongard_timeline_list", () => {
       it("should call client.timeline.list with pagination params", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.timeline.list.mockResolvedValue(mockResponse);
+        mockClient.timeline.list.mockResolvedValue([]);
 
         const result = await handleTimelineTool("liongard_timeline_list", {
           page: 1,
           pageSize: 50,
         });
 
-        expect(mockClient.timeline.list).toHaveBeenCalledWith(
-          { page: 1, pageSize: 50 },
-          undefined
-        );
+        expect(mockClient.timeline.list).toHaveBeenCalledWith({
+          page: 1,
+          pageSize: 50,
+        });
         expect(result.isError).toBeUndefined();
       });
 
-      it("should pass filters when provided", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.timeline.list.mockResolvedValue(mockResponse);
-
-        const filters = { environmentId: 10 };
-        await handleTimelineTool("liongard_timeline_list", {
-          page: 1,
-          pageSize: 25,
-          filters,
-        });
-
-        expect(mockClient.timeline.list).toHaveBeenCalledWith(
-          { page: 1, pageSize: 25 },
-          filters
-        );
-      });
-
-      it("should call with default params when none provided", async () => {
-        const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
-        mockClient.timeline.list.mockResolvedValue(mockResponse);
+      it("should call with all-undefined params when none provided", async () => {
+        mockClient.timeline.list.mockResolvedValue([]);
 
         await handleTimelineTool("liongard_timeline_list", {});
 
-        expect(mockClient.timeline.list).toHaveBeenCalledWith(
-          { page: undefined, pageSize: undefined },
-          undefined
-        );
+        expect(mockClient.timeline.list).toHaveBeenCalledWith({
+          page: undefined,
+          pageSize: undefined,
+        });
       });
     });
 

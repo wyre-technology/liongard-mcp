@@ -15,7 +15,7 @@ export const timelineTools: Tool[] = [
   {
     name: "liongard_timeline_list",
     description:
-      "List timeline entries in Liongard with pagination and optional filters. Timeline provides a chronological view of inspection events and configuration changes.",
+      "List timeline entries in Liongard via GET /api/v1/timeline. Returns a plain array of inspection events and configuration changes. page/pageSize are accepted but may be ignored by the v1 endpoint.",
     inputSchema: {
       type: "object",
       properties: {
@@ -26,11 +26,6 @@ export const timelineTools: Tool[] = [
         pageSize: {
           type: "number",
           description: "Number of items per page (default: 50)",
-        },
-        filters: {
-          type: "object",
-          description:
-            "Optional filters to narrow results (e.g., by environment, date range)",
         },
       },
     },
@@ -51,13 +46,12 @@ export async function handleTimelineTool(
       const params = args as {
         page?: number;
         pageSize?: number;
-        filters?: Record<string, unknown>;
       };
       try {
-        const response = await client.timeline.list(
-          { page: params.page, pageSize: params.pageSize },
-          params.filters
-        );
+        const response = await client.timeline.list({
+          page: params.page,
+          pageSize: params.pageSize,
+        });
         return {
           content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
         };
