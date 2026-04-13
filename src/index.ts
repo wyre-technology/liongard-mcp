@@ -38,7 +38,13 @@ import { detectionTools, handleDetectionTool } from "./domains/detections.js";
 import { metricTools, handleMetricTool } from "./domains/metrics.js";
 import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
 import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
-import { resetClient } from "./utils/client.js";
+import {
+  resetClient,
+  createClientDirect,
+  setClientOverride,
+  clearClientOverride,
+  type LiongardCredentials,
+} from "./utils/client.js";
 
 /**
  * Transport and auth configuration types
@@ -145,8 +151,12 @@ const navigateTool: Tool = {
 /**
  * Create a new MCP Server instance with all tool handlers registered.
  * Called once for stdio, or per-request for HTTP transport.
+ *
+ * @param credentialOverrides - Optional credentials for gateway mode.
+ *   When provided, a per-request client is created from these credentials
+ *   instead of reading from process.env.
  */
-function createMcpServer(): Server {
+function createMcpServer(credentialOverrides?: LiongardCredentials): Server {
   const server = new Server(
     {
       name: "liongard-mcp",
@@ -171,6 +181,13 @@ function createMcpServer(): Server {
    */
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+
+    // If per-request credentials were provided, create an isolated client
+    // and set it as the override so all domain handlers pick it up via getClient().
+    if (credentialOverrides) {
+      const directClient = await createClientDirect(credentialOverrides);
+      setClientOverride(directClient);
+    }
 
     try {
       // Handle navigation / discovery helper
@@ -246,11 +263,15 @@ function createMcpServer(): Server {
       const message = error instanceof Error ? error.message : String(error);
       const errCause = (error as { cause?: { message?: string; code?: string } })?.cause;
       const cause = errCause?.message || errCause?.code || 'no cause';
-      console.error(`[TOOL ERROR] ${request.params.name}: ${message} | cause: ${cause} | instance: ${process.env.LIONGARD_INSTANCE} | apiKeyLen: ${(process.env.LIONGARD_API_KEY || '').length}`);
+      console.error(`[TOOL ERROR] ${request.params.name}: ${message} | cause: ${cause}`);
       return {
         content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],
         isError: true,
       };
+    } finally {
+      if (credentialOverrides) {
+        clearClientOverride();
+      }
     }
   });
 
@@ -304,10 +325,10 @@ async function startHttpTransport(): Promise<void> {
       if (url.pathname === "/mcp") {
         console.error(`[MCP] ${req.method} /mcp from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} hasApiKey=${!!req.headers['x-liongard-api-key']} hasInstance=${!!req.headers['x-liongard-instance']}`);
 
-        // In gateway mode, set credentials if provided but don't reject
-        // requests without them. tools/list and initialize don't need
-        // credentials; tools/call will fail with a clear error if
-        // credentials are missing when the API client is created.
+        // In gateway mode, extract per-request credentials from headers
+        // and pass them directly to createMcpServer() for isolation.
+        // No process.env mutation — each request gets its own client.
+        let credentialOverrides: LiongardCredentials | undefined;
         if (isGatewayMode) {
           const apiKey = req.headers["x-liongard-api-key"] as
             | string
@@ -317,9 +338,7 @@ async function startHttpTransport(): Promise<void> {
             | undefined;
 
           if (apiKey && instance) {
-            resetClient();
-            process.env.LIONGARD_API_KEY = apiKey;
-            process.env.LIONGARD_INSTANCE = instance;
+            credentialOverrides = { apiKey, instance };
           }
         }
 
@@ -328,7 +347,7 @@ async function startHttpTransport(): Promise<void> {
           enableJsonResponse: true,
         });
 
-        const server = createMcpServer();
+        const server = createMcpServer(credentialOverrides);
 
         res.on("close", () => {
           transport.close();
