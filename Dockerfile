@@ -79,6 +79,7 @@ ARG COMMIT_SHA="unknown"
 ARG BUILD_DATE="unknown"
 
 # Labels for metadata
+LABEL io.modelcontextprotocol.server.name="io.github.wyre-technology/liongard-mcp"
 LABEL maintainer="engineering@wyre.ai"
 LABEL version="${VERSION}"
 LABEL description="Liongard MCP Server - Model Context Protocol server for Liongard"
