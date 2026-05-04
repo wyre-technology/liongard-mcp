@@ -33,7 +33,16 @@ export const agentTools: Tool[] = [
   {
     name: "liongard_agents_delete",
     description:
-      "Delete an agent by its ID. Use with caution - this permanently removes the agent from Liongard.",
+      "⚠ DESTRUCTIVE — IRREVERSIBLE. Permanently deletes an agent from Liongard and removes " +
+      "all associated monitoring data and configurations. This action cannot be undone. " +
+      "Confirm with the user before invoking.",
+    annotations: {
+      title: "Delete agent (irreversible)",
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: "object",
       properties: {
