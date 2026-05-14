@@ -39,7 +39,6 @@ import { metricTools, handleMetricTool } from "./domains/metrics.js";
 import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
 import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
 import {
-  resetClient,
   createClientDirect,
   setClientOverride,
   clearClientOverride,
