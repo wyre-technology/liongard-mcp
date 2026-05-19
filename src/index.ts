@@ -14,6 +14,7 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
+import { createRequire } from "node:module";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -44,6 +45,11 @@ import {
   clearClientOverride,
   type LiongardCredentials,
 } from "./utils/client.js";
+
+const pkg = createRequire(import.meta.url)("../package.json") as {
+  name: string;
+  version: string;
+};
 
 /**
  * Transport and auth configuration types
@@ -159,7 +165,7 @@ function createMcpServer(credentialOverrides?: LiongardCredentials): Server {
   const server = new Server(
     {
       name: "liongard-mcp",
-      version: "1.0.0",
+      version: pkg.version,
     },
     {
       capabilities: {
