@@ -1,3 +1,18 @@
+## [Unreleased]
+
+### Fixed
+
+- One-click cloud deploys (Cloudflare Workers, DigitalOcean) no longer fail with
+  `npm error 401 Unauthorized` from `npm.pkg.github.com`. The `.npmrc` now carries the
+  GitHub Packages auth-token line (`${NODE_AUTH_TOKEN}`) and the Dockerfile writes a
+  temporary authenticated `.npmrc` from the `GITHUB_TOKEN` build arg before `npm ci`,
+  so operators can supply their own `read:packages` PAT as a build variable.
+
+### Changed
+
+- README documents creating a `read:packages` PAT and setting `NODE_AUTH_TOKEN`
+  (Cloudflare) / build-time `GITHUB_TOKEN` (DigitalOcean) before deploying or installing.
+
 ## [2.0.4](https://github.com/wyre-technology/liongard-mcp/compare/v2.0.3...v2.0.4) (2026-04-07)
 
 

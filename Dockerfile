@@ -11,14 +11,16 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY .npmrc ./
 
-# GitHub Packages auth for @wyre-technology scoped packages
+# GitHub Packages auth for @wyre-technology scoped packages. Operators supply a
+# GitHub PAT (read:packages) as the GITHUB_TOKEN build arg; the temp .npmrc is
+# removed after install so the token never lands in an image layer.
+# (--ignore-scripts prevents 'prepare' from running before source is copied)
 ARG GITHUB_TOKEN
-RUN echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
-
-# Install dependencies (--ignore-scripts prevents 'prepare' from running before source is copied)
-RUN npm ci --ignore-scripts
+RUN echo "@wyre-technology:registry=https://npm.pkg.github.com" > .npmrc && \
+    echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc && \
+    npm ci --ignore-scripts && \
+    rm -f .npmrc
 
 # Copy source code
 COPY . .
