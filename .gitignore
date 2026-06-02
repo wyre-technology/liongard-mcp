@@ -5,3 +5,6 @@ dist/
 coverage/
 .env
 .env.*
+
+# Cloudflare Wrangler
+.wrangler/

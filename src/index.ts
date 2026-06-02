@@ -8,280 +8,28 @@
  * tool-list changes. A helper `liongard_navigate` tool provides domain
  * discovery and guidance.
  *
- * Supports both stdio and HTTP (StreamableHTTP) transports.
+ * Supports both stdio and HTTP (StreamableHTTP) transports. The shared,
+ * side-effect-free server factory lives in `mcp-server.ts` and is reused by
+ * the Cloudflare Workers entrypoint (`worker.ts`).
+ *
  * Authentication: Set LIONGARD_API_KEY and LIONGARD_INSTANCE environment variables (env mode)
  *                 or pass x-liongard-api-key and x-liongard-instance headers (gateway mode)
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
-import { createRequire } from "node:module";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  type Tool,
-} from "@modelcontextprotocol/sdk/types.js";
-
-// Domain imports
-import {
-  environmentTools,
-  handleEnvironmentTool,
-} from "./domains/environments.js";
-import { agentTools, handleAgentTool } from "./domains/agents.js";
-import {
-  inspectionTools,
-  handleInspectionTool,
-} from "./domains/inspections.js";
-import { systemTools, handleSystemTool } from "./domains/systems.js";
-import { detectionTools, handleDetectionTool } from "./domains/detections.js";
-import { metricTools, handleMetricTool } from "./domains/metrics.js";
-import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
-import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
-import {
-  createClientDirect,
-  setClientOverride,
-  clearClientOverride,
+  createMcpServer,
+  resolveGatewayCredentials,
   type LiongardCredentials,
-} from "./utils/client.js";
-
-const pkg = createRequire(import.meta.url)("../package.json") as {
-  name: string;
-  version: string;
-};
+} from "./mcp-server.js";
 
 /**
  * Transport and auth configuration types
  */
 type TransportType = "stdio" | "http";
 type AuthMode = "env" | "gateway";
-
-/**
- * Available domains for navigation
- */
-type Domain =
-  | "environments"
-  | "agents"
-  | "inspections"
-  | "systems"
-  | "detections"
-  | "metrics"
-  | "timeline"
-  | "inventory";
-
-/**
- * Domain metadata for navigation
- */
-const domainDescriptions: Record<Domain, string> = {
-  environments:
-    "Environment/company management - list, get, create environments, count, and view related entities",
-  agents:
-    "Agent management - list agents, bulk delete, and generate installers for on-premise data collection",
-  inspections:
-    "Inspection management - list inspectors and launchpoints, create launchpoints, and trigger inspection runs",
-  systems:
-    "System management - list and get infrastructure components discovered through inspections",
-  detections:
-    "Detection monitoring - list configuration changes and anomalies identified by inspections",
-  metrics:
-    "Metrics evaluation - list metrics, evaluate across systems, and evaluate per system",
-  timeline:
-    "Timeline view - chronological list of inspection events and configuration changes",
-  inventory:
-    "Asset inventory - manage identities (users/accounts) and device profiles discovered through inspections",
-};
-
-/**
- * Map from domain name to its tool definitions
- */
-const domainToolMap: Record<Domain, Tool[]> = {
-  environments: environmentTools,
-  agents: agentTools,
-  inspections: inspectionTools,
-  systems: systemTools,
-  detections: detectionTools,
-  metrics: metricTools,
-  timeline: timelineTools,
-  inventory: inventoryTools,
-};
-
-/**
- * All domain tools, collected once at startup
- */
-const allDomainTools: Tool[] = Object.values(domainToolMap).flat();
-
-/**
- * Navigation / discovery tool - helps the LLM find the right tools
- *
- * This is a stateless helper that describes available tools for a domain.
- * All domain tools are always listed in tools/list regardless of navigation
- * state, because many MCP clients (claude.ai connectors, mcp-remote) only
- * fetch the tool list once and do not support notifications/tools/list_changed.
- */
-const navigateTool: Tool = {
-  name: "liongard_navigate",
-  description:
-    "Discover available Liongard tools by domain. Returns tool names and descriptions for the selected domain. All tools are callable at any time — this is a help/discovery aid, not a prerequisite.",
-  inputSchema: {
-    type: "object",
-    properties: {
-      domain: {
-        type: "string",
-        enum: [
-          "environments",
-          "agents",
-          "inspections",
-          "systems",
-          "detections",
-          "metrics",
-          "timeline",
-          "inventory",
-        ],
-        description: `The domain to explore:
-- environments: ${domainDescriptions.environments}
-- agents: ${domainDescriptions.agents}
-- inspections: ${domainDescriptions.inspections}
-- systems: ${domainDescriptions.systems}
-- detections: ${domainDescriptions.detections}
-- metrics: ${domainDescriptions.metrics}
-- timeline: ${domainDescriptions.timeline}
-- inventory: ${domainDescriptions.inventory}`,
-      },
-    },
-    required: ["domain"],
-  },
-};
-
-/**
- * Create a new MCP Server instance with all tool handlers registered.
- * Called once for stdio, or per-request for HTTP transport.
- *
- * @param credentialOverrides - Optional credentials for gateway mode.
- *   When provided, a per-request client is created from these credentials
- *   instead of reading from process.env.
- */
-function createMcpServer(credentialOverrides?: LiongardCredentials): Server {
-  const server = new Server(
-    {
-      name: "liongard-mcp",
-      version: pkg.version,
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
-
-  /**
-   * Handle ListTools requests - always returns ALL tools
-   */
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: [navigateTool, ...allDomainTools] };
-  });
-
-  /**
-   * Handle CallTool requests
-   */
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    // If per-request credentials were provided, create an isolated client
-    // and set it as the override so all domain handlers pick it up via getClient().
-    if (credentialOverrides) {
-      const directClient = await createClientDirect(credentialOverrides);
-      setClientOverride(directClient);
-    }
-
-    try {
-      // Handle navigation / discovery helper
-      if (name === "liongard_navigate") {
-        const { domain } = args as { domain: Domain };
-        const tools = domainToolMap[domain];
-
-        if (!tools) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Unknown domain: ${domain}. Valid domains: ${Object.keys(domainToolMap).join(", ")}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        const toolSummary = tools
-          .map((t) => `- ${t.name}: ${t.description}`)
-          .join("\n");
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `${domainDescriptions[domain]}\n\nAvailable tools:\n${toolSummary}\n\nYou can call any of these tools directly.`,
-            },
-          ],
-        };
-      }
-
-      // Route to appropriate domain handler
-      const toolArgs = (args ?? {}) as Record<string, unknown>;
-
-      if (name.startsWith("liongard_environments_")) {
-        return await handleEnvironmentTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_agents_")) {
-        return await handleAgentTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_inspections_")) {
-        return await handleInspectionTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_systems_")) {
-        return await handleSystemTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_detections_")) {
-        return await handleDetectionTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_metrics_")) {
-        return await handleMetricTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_timeline_")) {
-        return await handleTimelineTool(name, toolArgs);
-      }
-      if (name.startsWith("liongard_inventory_")) {
-        return await handleInventoryTool(name, toolArgs);
-      }
-
-      // Unknown tool
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Unknown tool: ${name}. Use liongard_navigate to discover available tools by domain.`,
-          },
-        ],
-        isError: true,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const errCause = (error as { cause?: { message?: string; code?: string } })?.cause;
-      const cause = errCause?.message || errCause?.code || 'no cause';
-      console.error(`[TOOL ERROR] ${request.params.name}: ${message} | cause: ${cause}`);
-      return {
-        content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],
-        isError: true,
-      };
-    } finally {
-      if (credentialOverrides) {
-        clearClientOverride();
-      }
-    }
-  });
-
-  return server;
-}
 
 /**
  * Start the server with stdio transport (default)
@@ -335,16 +83,10 @@ async function startHttpTransport(): Promise<void> {
         // No process.env mutation — each request gets its own client.
         let credentialOverrides: LiongardCredentials | undefined;
         if (isGatewayMode) {
-          const apiKey = req.headers["x-liongard-api-key"] as
-            | string
-            | undefined;
-          const instance = req.headers["x-liongard-instance"] as
-            | string
-            | undefined;
-
-          if (apiKey && instance) {
-            credentialOverrides = { apiKey, instance };
-          }
+          const { creds } = resolveGatewayCredentials(
+            (name) => req.headers[name] as string | undefined
+          );
+          credentialOverrides = creds;
         }
 
         const transport = new StreamableHTTPServerTransport({
