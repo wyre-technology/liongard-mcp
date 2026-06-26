@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the node-liongard module before importing the client
 vi.mock("@wyre-technology/node-liongard", () => ({
-  LiongardClient: vi.fn().mockImplementation(() => ({
+  LiongardClient: vi.fn().mockImplementation(function () { return ({
     environments: {
       list: vi.fn(),
       get: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock("@wyre-technology/node-liongard", () => ({
       identities: { list: vi.fn(), get: vi.fn() },
       devices: { list: vi.fn(), get: vi.fn() },
     },
-  })),
+  }) }),
 }));
 
 describe("client utility", () => {
