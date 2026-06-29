@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/wyre-technology/liongard-mcp#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@wyre-technology/node-liongard": "^3.0.2"
   },
   "devDependencies": {
