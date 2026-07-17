@@ -38,6 +38,7 @@ import {
   clearClientOverride,
   type LiongardCredentials,
 } from "./utils/client.js";
+import { registerResourceHandlers } from "./resources.js";
 
 export type { LiongardCredentials };
 
@@ -195,9 +196,14 @@ export function createMcpServer(
     {
       capabilities: {
         tools: {},
+        resources: {},
       },
     }
   );
+
+  // MCP Apps (SEP-1865): serve the ui:// detection card via
+  // resources/list + resources/read.
+  registerResourceHandlers(server);
 
   /**
    * Handle ListTools requests - always returns ALL tools

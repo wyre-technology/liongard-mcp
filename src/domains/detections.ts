@@ -7,6 +7,11 @@
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getClient } from "../utils/client.js";
+import {
+  buildDetectionCard,
+  DETECTION_CARD_META,
+  type DetectionCard,
+} from "../card.builder.js";
 
 /**
  * Detection domain tool definitions
@@ -50,6 +55,7 @@ export const detectionTools: Tool[] = [
     name: "liongard_detections_get",
     description:
       "Get detailed information about a specific detection by its ID via GET /api/v1/detections/{id}.",
+    _meta: DETECTION_CARD_META,
     inputSchema: {
       type: "object",
       properties: {
@@ -110,8 +116,17 @@ export async function handleDetectionTool(
       const { id } = args as { id: number };
       try {
         const detection = await client.detections.get(id);
+        // MCP Apps: attach the normalized payload the ui:// detection card
+        // renders from. Best-effort — a null card just means no UI surface.
+        let card: DetectionCard | null = null;
+        try {
+          card = await buildDetectionCard(detection, client);
+        } catch {
+          /* card building never fails the tool result */
+        }
+        const payload = card ? { ...detection, _card: card } : detection;
         return {
-          content: [{ type: "text", text: JSON.stringify(detection, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
