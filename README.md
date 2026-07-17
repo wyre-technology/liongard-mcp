@@ -29,8 +29,9 @@ An MCP (Model Context Protocol) server for interacting with the [Liongard](https
 
 - Decision-tree tool architecture — starts with a navigation tool, then exposes domain-specific tools on demand
 - 25 tools across inspectors, systems, metrics, alerts, users, groups, environments, and integrations
+- Interactive detection card via MCP Apps (SEP-1865): `liongard_detections_get` renders as a read-only card in MCP Apps hosts (Claude Desktop/web) with severity/status badges and server-resolved system/environment names — neutral by default, brandable via `window.__BRAND__` injection or `MCP_BRAND_*` env vars (`MCP_BRAND_NAME`, `MCP_BRAND_LOGO_URL`, `MCP_BRAND_PRIMARY_COLOR`, `MCP_BRAND_ACCENT_COLOR`, `MCP_BRAND_BG`, `MCP_BRAND_TEXT`), no rebuild needed
 - Dual API version support (v1 and v2)
-- 118 tests
+- 128 tests
 
 ## Installation
 
