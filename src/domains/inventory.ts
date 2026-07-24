@@ -6,7 +6,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 
 /**
  * Inventory domain tool definitions
@@ -109,10 +109,9 @@ export const inventoryTools: Tool[] = [
  */
 export async function handleInventoryTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  client: LiongardClient
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
-  const client = await getClient();
-
   switch (name) {
     case "liongard_inventory_identities": {
       const params = args as {

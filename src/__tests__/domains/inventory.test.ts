@@ -3,12 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   inventoryTools,
   handleInventoryTool,
 } from "../../domains/inventory.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   inventory: {
     identities: {
@@ -21,23 +23,11 @@ const mockClient = {
     },
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    inventory: {
-      identities: { list: vi.fn(), get: vi.fn() },
-      devices: { list: vi.fn(), get: vi.fn() },
-    },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("inventory domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("inventoryTools", () => {
@@ -91,7 +81,8 @@ describe("inventory domain", () => {
 
         const result = await handleInventoryTool(
           "liongard_inventory_identities",
-          { environment: 8815, page: 1, pageSize: 50 }
+          { environment: 8815, page: 1, pageSize: 50 },
+          client
         );
 
         expect(
@@ -113,7 +104,8 @@ describe("inventory domain", () => {
         await handleInventoryTool("liongard_inventory_identities", {
           environment: 8815,
           filters,
-        });
+        },
+          client);
 
         expect(
           mockClient.inventory.identities.list
@@ -133,7 +125,8 @@ describe("inventory domain", () => {
 
         const result = await handleInventoryTool(
           "liongard_inventory_identity_get",
-          { id: 1 }
+          { id: 1 },
+          client
         );
 
         expect(mockClient.inventory.identities.get).toHaveBeenCalledWith(
@@ -151,7 +144,8 @@ describe("inventory domain", () => {
 
         const result = await handleInventoryTool(
           "liongard_inventory_devices",
-          { environment: 49198, page: 2, pageSize: 25 }
+          { environment: 49198, page: 2, pageSize: 25 },
+          client
         );
 
         expect(mockClient.inventory.devices.list).toHaveBeenCalledWith({
@@ -171,7 +165,8 @@ describe("inventory domain", () => {
         await handleInventoryTool("liongard_inventory_devices", {
           environment: 49198,
           filters,
-        });
+        },
+          client);
 
         expect(mockClient.inventory.devices.list).toHaveBeenCalledWith({
           environment: 49198,
@@ -193,7 +188,8 @@ describe("inventory domain", () => {
 
         const result = await handleInventoryTool(
           "liongard_inventory_device_get",
-          { id: 42 }
+          { id: 42 },
+          client
         );
 
         expect(mockClient.inventory.devices.get).toHaveBeenCalledWith(42);
@@ -206,7 +202,8 @@ describe("inventory domain", () => {
       it("should return error for unknown inventory tool", async () => {
         const result = await handleInventoryTool(
           "liongard_inventory_unknown",
-          {}
+          {},
+          client
         );
 
         expect(result.isError).toBe(true);

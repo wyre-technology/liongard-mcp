@@ -6,7 +6,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 
 /**
  * Inspection domain tool definitions
@@ -101,10 +101,9 @@ export const inspectionTools: Tool[] = [
  */
 export async function handleInspectionTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  client: LiongardClient
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
-  const client = await getClient();
-
   switch (name) {
     case "liongard_inspections_inspectors": {
       const params = args as { page?: number; pageSize?: number };

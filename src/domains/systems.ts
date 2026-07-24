@@ -6,7 +6,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 
 /**
  * System domain tool definitions
@@ -52,10 +52,9 @@ export const systemTools: Tool[] = [
  */
 export async function handleSystemTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  client: LiongardClient
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
-  const client = await getClient();
-
   switch (name) {
     case "liongard_systems_list": {
       const params = args as { page?: number; pageSize?: number };

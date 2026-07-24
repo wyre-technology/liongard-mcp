@@ -9,6 +9,21 @@
 
 ### Fixed
 
+- **Security: cross-tenant credential leak in gateway mode.** Gateway mode
+  resolved the per-request Liongard client via a module-level mutable
+  singleton (`_clientOverride` in `src/utils/client.ts`), set at the top of
+  the `CallToolRequestSchema` handler and cleared in a `finally` block.
+  Because `getClient()` checked that override unconditionally (before ever
+  looking at env vars), a concurrent request that reached `getClient()`
+  without setting its own override — such as a gateway request missing its
+  `X-Liongard-API-Key` / `X-Liongard-Instance` headers — could silently
+  inherit whichever *other* tenant's client was still active. Fixed by
+  removing the singleton and its setter/clearer entirely; the resolved
+  client is now a local variable threaded explicitly as a parameter through
+  `mcp-server.ts`'s dispatch into all 8 domain handler files, matching the
+  existing `kaseya-bms-mcp` / `connectwise-automate-mcp` parameter-threading
+  pattern. No shared mutable client state remains anywhere in the gateway
+  code path.
 - One-click cloud deploys (Cloudflare Workers, DigitalOcean) no longer fail with
   `npm error 401 Unauthorized` from `npm.pkg.github.com`. The `.npmrc` now carries the
   GitHub Packages auth-token line (`${NODE_AUTH_TOKEN}`) and the Dockerfile writes a

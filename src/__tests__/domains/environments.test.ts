@@ -3,12 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   environmentTools,
   handleEnvironmentTool,
 } from "../../domains/environments.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   environments: {
     list: vi.fn(),
@@ -18,26 +20,11 @@ const mockClient = {
     getRelatedEntities: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    environments: {
-      list: vi.fn(),
-      get: vi.fn(),
-      create: vi.fn(),
-      count: vi.fn(),
-      getRelatedEntities: vi.fn(),
-    },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("environments domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("environmentTools", () => {
@@ -98,7 +85,8 @@ describe("environments domain", () => {
 
         const result = await handleEnvironmentTool(
           "liongard_environments_list",
-          { page: 1, pageSize: 50 }
+          { page: 1, pageSize: 50 },
+          client
         );
 
         expect(mockClient.environments.list).toHaveBeenCalledWith({
@@ -112,7 +100,8 @@ describe("environments domain", () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.environments.list.mockResolvedValue(mockResponse);
 
-        await handleEnvironmentTool("liongard_environments_list", {});
+        await handleEnvironmentTool("liongard_environments_list", {},
+          client);
 
         expect(mockClient.environments.list).toHaveBeenCalledWith({
           page: undefined,
@@ -128,7 +117,8 @@ describe("environments domain", () => {
 
         const result = await handleEnvironmentTool(
           "liongard_environments_get",
-          { id: 1 }
+          { id: 1 },
+          client
         );
 
         expect(mockClient.environments.get).toHaveBeenCalledWith(1);
@@ -144,7 +134,8 @@ describe("environments domain", () => {
 
         const result = await handleEnvironmentTool(
           "liongard_environments_create",
-          { Name: "New Env", Description: "Test desc" }
+          { Name: "New Env", Description: "Test desc" },
+          client
         );
 
         expect(mockClient.environments.create).toHaveBeenCalledWith({
@@ -162,7 +153,8 @@ describe("environments domain", () => {
 
         const result = await handleEnvironmentTool(
           "liongard_environments_count",
-          {}
+          {},
+          client
         );
 
         expect(mockClient.environments.count).toHaveBeenCalled();
@@ -186,7 +178,8 @@ describe("environments domain", () => {
 
         const result = await handleEnvironmentTool(
           "liongard_environments_related",
-          { id: 1 }
+          { id: 1 },
+          client
         );
 
         expect(
@@ -201,7 +194,8 @@ describe("environments domain", () => {
       it("should return error for unknown environment tool", async () => {
         const result = await handleEnvironmentTool(
           "liongard_environments_unknown",
-          {}
+          {},
+          client
         );
 
         expect(result.isError).toBe(true);

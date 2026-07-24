@@ -3,12 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   inspectionTools,
   handleInspectionTool,
 } from "../../domains/inspections.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   inspectors: {
     list: vi.fn(),
@@ -20,21 +22,11 @@ const mockClient = {
     runNow: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    inspectors: { list: vi.fn(), get: vi.fn() },
-    launchpoints: { list: vi.fn(), create: vi.fn(), runNow: vi.fn() },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("inspections domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("inspectionTools", () => {
@@ -86,7 +78,8 @@ describe("inspections domain", () => {
 
         const result = await handleInspectionTool(
           "liongard_inspections_inspectors",
-          { page: 1, pageSize: 25 }
+          { page: 1, pageSize: 25 },
+          client
         );
 
         expect(mockClient.inspectors.list).toHaveBeenCalledWith({
@@ -104,7 +97,8 @@ describe("inspections domain", () => {
 
         const result = await handleInspectionTool(
           "liongard_inspections_launchpoints",
-          { page: 2, pageSize: 10 }
+          { page: 2, pageSize: 10 },
+          client
         );
 
         expect(mockClient.launchpoints.list).toHaveBeenCalledWith({
@@ -122,7 +116,8 @@ describe("inspections domain", () => {
 
         const result = await handleInspectionTool(
           "liongard_inspections_create_launchpoint",
-          { Name: "Test LP", InspectorID: 5, EnvironmentID: 10 }
+          { Name: "Test LP", InspectorID: 5, EnvironmentID: 10 },
+          client
         );
 
         expect(mockClient.launchpoints.create).toHaveBeenCalledWith({
@@ -141,7 +136,8 @@ describe("inspections domain", () => {
 
         const result = await handleInspectionTool(
           "liongard_inspections_run",
-          { launchpointId: 42 }
+          { launchpointId: 42 },
+          client
         );
 
         expect(mockClient.launchpoints.runNow).toHaveBeenCalledWith(42);
@@ -154,7 +150,8 @@ describe("inspections domain", () => {
       it("should return error for unknown inspection tool", async () => {
         const result = await handleInspectionTool(
           "liongard_inspections_unknown",
-          {}
+          {},
+          client
         );
 
         expect(result.isError).toBe(true);

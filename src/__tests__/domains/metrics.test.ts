@@ -3,9 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import { metricTools, handleMetricTool } from "../../domains/metrics.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   metrics: {
     list: vi.fn(),
@@ -13,20 +15,11 @@ const mockClient = {
     evaluateSystems: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    metrics: { list: vi.fn(), evaluate: vi.fn(), evaluateSystems: vi.fn() },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("metrics domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("metricTools", () => {
@@ -74,7 +67,8 @@ describe("metrics domain", () => {
         ];
         mockClient.metrics.list.mockResolvedValue(mockMetrics);
 
-        const result = await handleMetricTool("liongard_metrics_list", {});
+        const result = await handleMetricTool("liongard_metrics_list", {},
+          client);
 
         expect(mockClient.metrics.list).toHaveBeenCalled();
         expect(result.content[0].text).toContain("MFA Enabled");
@@ -92,7 +86,8 @@ describe("metrics domain", () => {
           EnvironmentIDs: [10],
           page: 1,
           pageSize: 50,
-        });
+        },
+          client);
 
         expect(mockClient.metrics.evaluate).toHaveBeenCalledWith({
           MetricIDs: [1, 2],
@@ -106,7 +101,8 @@ describe("metrics domain", () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.metrics.evaluate.mockResolvedValue(mockResponse);
 
-        await handleMetricTool("liongard_metrics_evaluate", {});
+        await handleMetricTool("liongard_metrics_evaluate", {},
+          client);
 
         expect(mockClient.metrics.evaluate).toHaveBeenCalledWith({
           MetricIDs: undefined,
@@ -123,7 +119,8 @@ describe("metrics domain", () => {
 
         const result = await handleMetricTool(
           "liongard_metrics_evaluate_systems",
-          { MetricIDs: [3], page: 2, pageSize: 25 }
+          { MetricIDs: [3], page: 2, pageSize: 25 },
+          client
         );
 
         expect(mockClient.metrics.evaluateSystems).toHaveBeenCalledWith({
@@ -137,7 +134,8 @@ describe("metrics domain", () => {
 
     describe("unknown tool", () => {
       it("should return error for unknown metric tool", async () => {
-        const result = await handleMetricTool("liongard_metrics_unknown", {});
+        const result = await handleMetricTool("liongard_metrics_unknown", {},
+          client);
 
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain("Unknown metric tool");

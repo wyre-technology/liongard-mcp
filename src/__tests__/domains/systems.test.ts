@@ -3,29 +3,22 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import { systemTools, handleSystemTool } from "../../domains/systems.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   systems: {
     list: vi.fn(),
     get: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    systems: { list: vi.fn(), get: vi.fn() },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("systems domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("systemTools", () => {
@@ -61,7 +54,8 @@ describe("systems domain", () => {
         const result = await handleSystemTool("liongard_systems_list", {
           page: 1,
           pageSize: 50,
-        });
+        },
+          client);
 
         expect(mockClient.systems.list).toHaveBeenCalledWith({
           page: 1,
@@ -74,7 +68,8 @@ describe("systems domain", () => {
         const mockResponse = { data: [], meta: { page: 1, totalPages: 1 } };
         mockClient.systems.list.mockResolvedValue(mockResponse);
 
-        await handleSystemTool("liongard_systems_list", {});
+        await handleSystemTool("liongard_systems_list", {},
+          client);
 
         expect(mockClient.systems.list).toHaveBeenCalledWith({
           page: undefined,
@@ -90,7 +85,8 @@ describe("systems domain", () => {
 
         const result = await handleSystemTool("liongard_systems_get", {
           id: 1,
-        });
+        },
+          client);
 
         expect(mockClient.systems.get).toHaveBeenCalledWith(1);
         expect(result.content[0].text).toContain("Windows Server");
@@ -100,7 +96,8 @@ describe("systems domain", () => {
 
     describe("unknown tool", () => {
       it("should return error for unknown system tool", async () => {
-        const result = await handleSystemTool("liongard_systems_unknown", {});
+        const result = await handleSystemTool("liongard_systems_unknown", {},
+          client);
 
         expect(result.isError).toBe(true);
         expect(result.content[0].text).toContain("Unknown system tool");

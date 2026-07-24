@@ -3,32 +3,25 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   detectionTools,
   handleDetectionTool,
 } from "../../domains/detections.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   detections: {
     list: vi.fn(),
     get: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    detections: { list: vi.fn(), get: vi.fn() },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("detections domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("detectionTools", () => {
@@ -70,7 +63,8 @@ describe("detections domain", () => {
             startDate: "2024-04-01T00:00:00Z",
             endDate: "2024-04-30T00:00:00Z",
             filters: [{ Field: "Severity", Op: "=", Value: "High" }],
-          }
+          },
+          client
         );
 
         expect(mockClient.detections.list).toHaveBeenCalledWith({
@@ -86,7 +80,8 @@ describe("detections domain", () => {
       it("should call with all-undefined options when none provided", async () => {
         mockClient.detections.list.mockResolvedValue({ Data: [], Pagination: {} });
 
-        await handleDetectionTool("liongard_detections_list", {});
+        await handleDetectionTool("liongard_detections_list", {},
+          client);
 
         expect(mockClient.detections.list).toHaveBeenCalledWith({
           page: undefined,
@@ -104,7 +99,8 @@ describe("detections domain", () => {
 
         const result = await handleDetectionTool("liongard_detections_get", {
           id: 7,
-        });
+        },
+          client);
 
         expect(mockClient.detections.get).toHaveBeenCalledWith(7);
         expect(result.isError).toBeUndefined();
@@ -115,7 +111,8 @@ describe("detections domain", () => {
       it("should return error for unknown detection tool", async () => {
         const result = await handleDetectionTool(
           "liongard_detections_unknown",
-          {}
+          {},
+          client
         );
 
         expect(result.isError).toBe(true);

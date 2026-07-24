@@ -34,8 +34,7 @@ import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
 import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
 import {
   createClientDirect,
-  setClientOverride,
-  clearClientOverride,
+  getClient,
   type LiongardCredentials,
 } from "./utils/client.js";
 import { registerResourceHandlers } from "./resources.js";
@@ -218,15 +217,9 @@ export function createMcpServer(
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    // If per-request credentials were provided, create an isolated client
-    // and set it as the override so all domain handlers pick it up via getClient().
-    if (credentialOverrides) {
-      const directClient = await createClientDirect(credentialOverrides);
-      setClientOverride(directClient);
-    }
-
     try {
-      // Handle navigation / discovery helper
+      // Handle navigation / discovery helper. No vendor client needed here,
+      // so this stays credential-free — same as before.
       if (name === "liongard_navigate") {
         const { domain } = args as { domain: Domain };
         const tools = domainToolMap[domain];
@@ -257,32 +250,44 @@ export function createMcpServer(
         };
       }
 
+      // Resolve the client for this request. In gateway mode, an isolated
+      // client is created directly from the per-request credentials and
+      // threaded through explicitly as a local variable — never shared
+      // module-level state — so concurrent requests from different tenants
+      // can never observe each other's client/credentials. Resolved inside
+      // the try block so a missing-credentials error (env mode) is caught
+      // below and returned as a graceful tool error, not an unhandled
+      // rejection.
+      const client = credentialOverrides
+        ? await createClientDirect(credentialOverrides)
+        : await getClient();
+
       // Route to appropriate domain handler
       const toolArgs = (args ?? {}) as Record<string, unknown>;
 
       if (name.startsWith("liongard_environments_")) {
-        return await handleEnvironmentTool(name, toolArgs);
+        return await handleEnvironmentTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_agents_")) {
-        return await handleAgentTool(name, toolArgs);
+        return await handleAgentTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_inspections_")) {
-        return await handleInspectionTool(name, toolArgs);
+        return await handleInspectionTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_systems_")) {
-        return await handleSystemTool(name, toolArgs);
+        return await handleSystemTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_detections_")) {
-        return await handleDetectionTool(name, toolArgs);
+        return await handleDetectionTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_metrics_")) {
-        return await handleMetricTool(name, toolArgs);
+        return await handleMetricTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_timeline_")) {
-        return await handleTimelineTool(name, toolArgs);
+        return await handleTimelineTool(name, toolArgs, client);
       }
       if (name.startsWith("liongard_inventory_")) {
-        return await handleInventoryTool(name, toolArgs);
+        return await handleInventoryTool(name, toolArgs, client);
       }
 
       // Unknown tool
@@ -304,10 +309,6 @@ export function createMcpServer(
         content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],
         isError: true,
       };
-    } finally {
-      if (credentialOverrides) {
-        clearClientOverride();
-      }
     }
   });
 

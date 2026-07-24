@@ -3,31 +3,24 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   timelineTools,
   handleTimelineTool,
 } from "../../domains/timeline.js";
 
-// Mock the client utility
+// Directly constructed fake client, passed explicitly to the handler
+// under test (no module-level client state to mock).
 const mockClient = {
   timeline: {
     list: vi.fn(),
   },
 };
-
-vi.mock("../../utils/client.js", () => ({
-  getClient: vi.fn().mockResolvedValue({
-    timeline: { list: vi.fn() },
-  }),
-}));
+const client = mockClient as unknown as LiongardClient;
 
 describe("timeline domain", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const { getClient } = await import("../../utils/client.js");
-    vi.mocked(getClient).mockResolvedValue(
-      mockClient as unknown as Awaited<ReturnType<typeof getClient>>
-    );
   });
 
   describe("timelineTools", () => {
@@ -54,7 +47,8 @@ describe("timeline domain", () => {
         const result = await handleTimelineTool("liongard_timeline_list", {
           page: 1,
           pageSize: 50,
-        });
+        },
+          client);
 
         expect(mockClient.timeline.list).toHaveBeenCalledWith({
           page: 1,
@@ -66,7 +60,8 @@ describe("timeline domain", () => {
       it("should call with all-undefined params when none provided", async () => {
         mockClient.timeline.list.mockResolvedValue([]);
 
-        await handleTimelineTool("liongard_timeline_list", {});
+        await handleTimelineTool("liongard_timeline_list", {},
+          client);
 
         expect(mockClient.timeline.list).toHaveBeenCalledWith({
           page: undefined,
@@ -79,7 +74,8 @@ describe("timeline domain", () => {
       it("should return error for unknown timeline tool", async () => {
         const result = await handleTimelineTool(
           "liongard_timeline_unknown",
-          {}
+          {},
+          client
         );
 
         expect(result.isError).toBe(true);

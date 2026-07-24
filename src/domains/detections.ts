@@ -6,7 +6,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import type { LiongardClient } from "@wyre-technology/node-liongard";
 import {
   buildDetectionCard,
   DETECTION_CARD_META,
@@ -74,10 +74,9 @@ export const detectionTools: Tool[] = [
  */
 export async function handleDetectionTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  client: LiongardClient
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
-  const client = await getClient();
-
   switch (name) {
     case "liongard_detections_list": {
       const params = args as {
