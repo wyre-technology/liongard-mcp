@@ -4,17 +4,18 @@
  * Implements lazy loading pattern to defer client instantiation
  * until first use, reducing startup time and memory footprint.
  *
- * In gateway mode, per-request credential isolation is achieved via
- * setClientOverride / clearClientOverride so that concurrent requests
- * never share process.env mutations.
+ * In gateway mode, per-request credentials are threaded explicitly as a
+ * parameter through createMcpServer() -> each domain handler -> getClient(),
+ * never touching a shared module-level variable. (A prior version of this
+ * fix used a module-level `_clientOverride` set/cleared per request — that
+ * shared mutable global raced under concurrent requests for different
+ * tenants the same way process.env mutation does elsewhere; explicit
+ * parameter-threading has no shared state to race on.)
  */
 
 import type { LiongardClient } from "@wyre-technology/node-liongard";
 
 let _client: LiongardClient | null = null;
-
-/** Per-request client override — takes priority over the cached singleton */
-let _clientOverride: LiongardClient | null = null;
 
 export interface LiongardCredentials {
   apiKey: string;
@@ -37,30 +38,24 @@ export async function createClientDirect(
 }
 
 /**
- * Set a request-scoped client override.
- * While set, getClient() returns this instance instead of the cached one.
- */
-export function setClientOverride(client: LiongardClient): void {
-  _clientOverride = client;
-}
-
-/**
- * Clear the request-scoped client override.
- */
-export function clearClientOverride(): void {
-  _clientOverride = null;
-}
-
-/**
- * Get or create the Liongard client instance.
- * Returns the per-request override if set, otherwise the lazy-loaded singleton.
+ * Get the Liongard client for this call.
  *
- * @throws Error if LIONGARD_API_KEY or LIONGARD_INSTANCE environment variables are not set
+ * When `credentials` is provided (gateway mode), builds a fresh client
+ * directly from it — no caching, no shared state, so concurrent requests
+ * for different tenants can never observe each other's client. Otherwise
+ * falls back to a lazy-loaded singleton built from process.env (stdio /
+ * env mode, where there's a single process-lifetime credential set and no
+ * concurrent multi-tenant requests to race).
+ *
+ * @throws Error if credentials are missing and LIONGARD_API_KEY /
+ *   LIONGARD_INSTANCE environment variables are not set
  * @returns Promise resolving to the LiongardClient instance
  */
-export async function getClient(): Promise<LiongardClient> {
-  if (_clientOverride) {
-    return _clientOverride;
+export async function getClient(
+  credentials?: LiongardCredentials
+): Promise<LiongardClient> {
+  if (credentials) {
+    return createClientDirect(credentials);
   }
 
   if (!_client) {
@@ -84,7 +79,7 @@ export async function getClient(): Promise<LiongardClient> {
 }
 
 /**
- * Reset the client instance (useful for testing and gateway mode)
+ * Reset the client instance (useful for testing)
  */
 export function resetClient(): void {
   _client = null;

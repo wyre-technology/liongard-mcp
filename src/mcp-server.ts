@@ -32,12 +32,7 @@ import { detectionTools, handleDetectionTool } from "./domains/detections.js";
 import { metricTools, handleMetricTool } from "./domains/metrics.js";
 import { timelineTools, handleTimelineTool } from "./domains/timeline.js";
 import { inventoryTools, handleInventoryTool } from "./domains/inventory.js";
-import {
-  createClientDirect,
-  setClientOverride,
-  clearClientOverride,
-  type LiongardCredentials,
-} from "./utils/client.js";
+import { type LiongardCredentials } from "./utils/client.js";
 import { registerResourceHandlers } from "./resources.js";
 
 export type { LiongardCredentials };
@@ -218,13 +213,6 @@ export function createMcpServer(
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    // If per-request credentials were provided, create an isolated client
-    // and set it as the override so all domain handlers pick it up via getClient().
-    if (credentialOverrides) {
-      const directClient = await createClientDirect(credentialOverrides);
-      setClientOverride(directClient);
-    }
-
     try {
       // Handle navigation / discovery helper
       if (name === "liongard_navigate") {
@@ -261,28 +249,28 @@ export function createMcpServer(
       const toolArgs = (args ?? {}) as Record<string, unknown>;
 
       if (name.startsWith("liongard_environments_")) {
-        return await handleEnvironmentTool(name, toolArgs);
+        return await handleEnvironmentTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_agents_")) {
-        return await handleAgentTool(name, toolArgs);
+        return await handleAgentTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_inspections_")) {
-        return await handleInspectionTool(name, toolArgs);
+        return await handleInspectionTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_systems_")) {
-        return await handleSystemTool(name, toolArgs);
+        return await handleSystemTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_detections_")) {
-        return await handleDetectionTool(name, toolArgs);
+        return await handleDetectionTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_metrics_")) {
-        return await handleMetricTool(name, toolArgs);
+        return await handleMetricTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_timeline_")) {
-        return await handleTimelineTool(name, toolArgs);
+        return await handleTimelineTool(name, toolArgs, credentialOverrides);
       }
       if (name.startsWith("liongard_inventory_")) {
-        return await handleInventoryTool(name, toolArgs);
+        return await handleInventoryTool(name, toolArgs, credentialOverrides);
       }
 
       // Unknown tool
@@ -304,10 +292,6 @@ export function createMcpServer(
         content: [{ type: "text", text: `Error: ${message} (cause: ${cause})` }],
         isError: true,
       };
-    } finally {
-      if (credentialOverrides) {
-        clearClientOverride();
-      }
     }
   });
 

@@ -120,4 +120,89 @@ describe("client utility", () => {
       expect(LiongardClient).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe("getClient(credentials) — explicit per-request credentials", () => {
+    it("builds a fresh client directly from the given credentials, ignoring process.env", async () => {
+      delete process.env.LIONGARD_API_KEY;
+      delete process.env.LIONGARD_INSTANCE;
+
+      const { getClient } = await import("../utils/client.js");
+      const { LiongardClient } = await import(
+        "@wyre-technology/node-liongard"
+      );
+
+      const client = await getClient({
+        apiKey: "override-key",
+        instance: "override-instance",
+      });
+
+      expect(LiongardClient).toHaveBeenCalledWith({
+        instance: "override-instance",
+        apiKey: "override-key",
+        rateLimit: { enabled: false },
+      });
+      expect(client).toBeDefined();
+    });
+
+    it("builds a fresh client on every call — no shared state across calls", async () => {
+      const { getClient } = await import("../utils/client.js");
+      const { LiongardClient } = await import(
+        "@wyre-technology/node-liongard"
+      );
+
+      const first = await getClient({ apiKey: "k1", instance: "i1" });
+      const second = await getClient({ apiKey: "k1", instance: "i1" });
+
+      expect(LiongardClient).toHaveBeenCalledTimes(2);
+      expect(second).not.toBe(first);
+    });
+
+    it(
+      "does not contaminate a concurrent request with another tenant's credentials " +
+        "(regression test for the module-level _clientOverride race)",
+      async () => {
+        const { getClient } = await import("../utils/client.js");
+        const { LiongardClient } = await import(
+          "@wyre-technology/node-liongard"
+        );
+
+        const calls: Array<{ instance: string; apiKey: string }> = [];
+        (LiongardClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+          function (config: { instance: string; apiKey: string }) {
+            calls.push(config);
+            return { config };
+          }
+        );
+
+        // Simulate two concurrent gateway requests for different tenants.
+        // Under the old module-level `_clientOverride` implementation, B's
+        // setClientOverride() (or clearClientOverride() in its `finally`)
+        // could race with A's still-in-flight getClient() read, letting A
+        // observe B's client (or nothing at all).
+        const [clientA, clientB] = await Promise.all([
+          (async () => {
+            await new Promise((r) => setTimeout(r, 10));
+            return getClient({ apiKey: "tenant-a-key", instance: "tenant-a" });
+          })(),
+          getClient({ apiKey: "tenant-b-key", instance: "tenant-b" }),
+        ]);
+
+        // Identity-distinctness (clientA !== clientB) and membership
+        // (calls contains both configs) alone are NOT sufficient evidence:
+        // both stay true even if a reintroduced singleton swapped which
+        // client each variable actually received. The load-bearing
+        // assertions are the per-variable VALUE checks below — proving
+        // clientA specifically holds tenant-a's config and clientB
+        // specifically holds tenant-b's, not just "two distinct clients
+        // were built somewhere."
+        expect(clientA).not.toBe(clientB);
+        expect(clientA).toMatchObject({
+          config: { instance: "tenant-a", apiKey: "tenant-a-key" },
+        });
+        expect(clientB).toMatchObject({
+          config: { instance: "tenant-b", apiKey: "tenant-b-key" },
+        });
+      }
+    );
+  });
 });
