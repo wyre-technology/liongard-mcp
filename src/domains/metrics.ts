@@ -6,7 +6,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import { getClient, type LiongardCredentials } from "../utils/client.js";
 
 /**
  * Metric domain tool definitions
@@ -84,9 +84,10 @@ export const metricTools: Tool[] = [
  */
 export async function handleMetricTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  credentials?: LiongardCredentials
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
-  const client = await getClient();
+  const client = await getClient(credentials);
 
   switch (name) {
     case "liongard_metrics_list": {
