@@ -187,16 +187,20 @@ describe("client utility", () => {
           getClient({ apiKey: "tenant-b-key", instance: "tenant-b" }),
         ]);
 
+        // Identity-distinctness (clientA !== clientB) and membership
+        // (calls contains both configs) alone are NOT sufficient evidence:
+        // both stay true even if a reintroduced singleton swapped which
+        // client each variable actually received. The load-bearing
+        // assertions are the per-variable VALUE checks below — proving
+        // clientA specifically holds tenant-a's config and clientB
+        // specifically holds tenant-b's, not just "two distinct clients
+        // were built somewhere."
         expect(clientA).not.toBe(clientB);
-        expect(calls).toContainEqual({
-          instance: "tenant-a",
-          apiKey: "tenant-a-key",
-          rateLimit: { enabled: false },
+        expect(clientA).toMatchObject({
+          config: { instance: "tenant-a", apiKey: "tenant-a-key" },
         });
-        expect(calls).toContainEqual({
-          instance: "tenant-b",
-          apiKey: "tenant-b-key",
-          rateLimit: { enabled: false },
+        expect(clientB).toMatchObject({
+          config: { instance: "tenant-b", apiKey: "tenant-b-key" },
         });
       }
     );
