@@ -83,8 +83,6 @@ async function startHttpTransport(): Promise<void> {
       // each initialize handshake gets a fresh server (the MCP SDK rejects
       // initialize on an already-initialized server).
       if (url.pathname === "/mcp") {
-        console.error(`[MCP] ${req.method} /mcp from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} hasApiKey=${!!req.headers['x-liongard-api-key']} hasInstance=${!!req.headers['x-liongard-instance']}`);
-
         // Conduit service-to-service auth (gateway#377 parity): rejected
         // BEFORE any credential extraction, mirroring every other ported
         // wrapper (e.g. containers/sentinelone-mcp/gateway_wrapper.py).
@@ -97,6 +95,10 @@ async function startHttpTransport(): Promise<void> {
           );
           return;
         }
+
+        // Diagnostic log moved here (after the S2S gate) so an unverified
+        // caller's headers are never touched, even for a presence-only check.
+        console.error(`[MCP] ${req.method} /mcp from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} hasApiKey=${!!req.headers['x-liongard-api-key']} hasInstance=${!!req.headers['x-liongard-instance']}`);
 
         // In gateway mode, extract per-request credentials from headers
         // and pass them directly to createMcpServer() for isolation.

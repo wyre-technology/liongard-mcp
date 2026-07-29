@@ -23,9 +23,9 @@ describe("verifyS2sHeader", () => {
   const MASTER = "test-master-secret-do-not-use-in-prod";
   const liongardSubkey = deriveRecipientSubkey(MASTER, "liongard");
   const ninjaoneSubkey = deriveRecipientSubkey(MASTER, "ninjaone");
-  const now = Math.floor(Date.now() / 1000);
 
   it("accepts a header minted with this vendor's own derived subkey", () => {
+    const now = Math.floor(Date.now() / 1000);
     const header = mintHeader(liongardSubkey, now);
     expect(verifyS2sHeader(header, liongardSubkey)).toBe(true);
   });
@@ -34,21 +34,25 @@ describe("verifyS2sHeader", () => {
     // A header a compromised sibling sidecar could produce for itself must
     // NOT verify here — this is the actual property Finding B's rollout
     // needs to deliver, not just "some verify function exists."
+    const now = Math.floor(Date.now() / 1000);
     const headerMintedForNinjaone = mintHeader(ninjaoneSubkey, now);
     expect(verifyS2sHeader(headerMintedForNinjaone, liongardSubkey)).toBe(false);
   });
 
   it("rejects a stale timestamp outside the skew window", () => {
+    const now = Math.floor(Date.now() / 1000);
     const staleHeader = mintHeader(liongardSubkey, now - 301);
     expect(verifyS2sHeader(staleHeader, liongardSubkey)).toBe(false);
   });
 
   it("rejects a future timestamp outside the skew window", () => {
+    const now = Math.floor(Date.now() / 1000);
     const futureHeader = mintHeader(liongardSubkey, now + 301);
     expect(verifyS2sHeader(futureHeader, liongardSubkey)).toBe(false);
   });
 
   it("accepts a timestamp at the edge of the skew window", () => {
+    const now = Math.floor(Date.now() / 1000);
     const edgeHeader = mintHeader(liongardSubkey, now - 300);
     expect(verifyS2sHeader(edgeHeader, liongardSubkey)).toBe(true);
   });
@@ -63,11 +67,13 @@ describe("verifyS2sHeader", () => {
   });
 
   it("rejects when the secret is empty (dark-by-default guarantee)", () => {
+    const now = Math.floor(Date.now() / 1000);
     const header = mintHeader(liongardSubkey, now);
     expect(verifyS2sHeader(header, "")).toBe(false);
   });
 
   it("rejects a tampered signature", () => {
+    const now = Math.floor(Date.now() / 1000);
     const header = mintHeader(liongardSubkey, now);
     const tampered = header.slice(0, -1) + (header.endsWith("0") ? "1" : "0");
     expect(verifyS2sHeader(tampered, liongardSubkey)).toBe(false);
