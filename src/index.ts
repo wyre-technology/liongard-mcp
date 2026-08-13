@@ -24,6 +24,13 @@ import {
   resolveGatewayCredentials,
   type LiongardCredentials,
 } from "./mcp-server.js";
+import { verifyS2sHeader, S2S_HEADER } from "./s2s-verify.js";
+
+// Conduit service-to-service auth (gateway#377 parity). Non-empty =
+// enforce X-Gateway-S2S on every /mcp request; empty = disabled, behavior
+// exactly as before (dark-by-default until the gateway provisions this
+// container's derived subkey). See src/s2s-verify.ts.
+const S2S_SECRET = process.env.CONDUIT_S2S_SECRET || "";
 
 /**
  * Transport and auth configuration types
@@ -76,6 +83,21 @@ async function startHttpTransport(): Promise<void> {
       // each initialize handshake gets a fresh server (the MCP SDK rejects
       // initialize on an already-initialized server).
       if (url.pathname === "/mcp") {
+        // Conduit service-to-service auth (gateway#377 parity): rejected
+        // BEFORE any credential extraction, mirroring every other ported
+        // wrapper (e.g. containers/sentinelone-mcp/gateway_wrapper.py).
+        if (S2S_SECRET && !verifyS2sHeader(req.headers[S2S_HEADER] as string | undefined, S2S_SECRET)) {
+          res.writeHead(401, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              error: "Missing or invalid X-Gateway-S2S header: this endpoint only accepts requests signed by the gateway.",
+            })
+          );
+          return;
+        }
+
+        // Diagnostic log moved here (after the S2S gate) so an unverified
+        // caller's headers are never touched, even for a presence-only check.
         console.error(`[MCP] ${req.method} /mcp from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} hasApiKey=${!!req.headers['x-liongard-api-key']} hasInstance=${!!req.headers['x-liongard-instance']}`);
 
         // In gateway mode, extract per-request credentials from headers
