@@ -84,7 +84,13 @@ try {
 
   // 8. Pack the bundle
   console.log('\n=== Packing MCPB bundle ===');
-  const bundlePath = join(ROOT, `${pkg.name}.mcpb`);
+  // pkg.name is scoped ("@wyre-technology/liongard-mcp"), so building the
+  // bundle filename directly from it put the output at
+  // ROOT/@wyre-technology/liongard-mcp.mcpb -- a subdirectory that doesn't
+  // exist at the repo root, where the release workflow's `bundles=(*.mcpb)`
+  // glob looks for it. Strip the scope so the bundle lands as a flat file.
+  const bundleName = pkg.name.includes('/') ? pkg.name.split('/').pop() : pkg.name;
+  const bundlePath = join(ROOT, `${bundleName}.mcpb`);
   run(`npx mcpb pack "${STAGING}" "${bundlePath}"`, { cwd: ROOT });
 
   // 9. Cleanup
@@ -94,7 +100,7 @@ try {
   console.log('\n=== Done! ===');
   if (existsSync(bundlePath)) {
     const stats = require('fs').statSync(bundlePath);
-    console.log(`Bundle: ${pkg.name}.mcpb (${(stats.size / 1024 / 1024).toFixed(1)}MB)`);
+    console.log(`Bundle: ${bundleName}.mcpb (${(stats.size / 1024 / 1024).toFixed(1)}MB)`);
   }
 } catch (error) {
   console.error('Pack failed:', error.message);
